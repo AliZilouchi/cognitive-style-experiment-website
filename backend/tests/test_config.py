@@ -6,6 +6,51 @@ from sepid_rag.config import Settings
 
 
 class ConfigTests(unittest.TestCase):
+    def test_hosted_openrouter_configuration_is_accepted(self):
+        with patch.dict(
+            os.environ,
+            {
+                "APP_ENV": "experiment",
+                "EMBEDDING_PROVIDER": "openrouter",
+                "EMBEDDING_MODEL": "intfloat/multilingual-e5-large",
+                "EMBEDDING_REVISION": "openrouter-catalog-2026-08-25",
+                "EMBEDDING_DIMENSION": "1024",
+                # Vercel commonly trims the trailing spaces from these values.
+                "QUERY_PREFIX": "query:",
+                "DOCUMENT_PREFIX": "passage:",
+                "TOP_K": "5",
+                "LLM_PROVIDER": "openrouter",
+                "LLM_MODEL": "openai/gpt-4o-mini",
+                "OPENROUTER_API_KEY": "test-openrouter-key",
+                "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
+                "API_SHARED_SECRET": "test-secret-with-at-least-thirty-two-characters",
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            self.assertEqual(settings.embedding_provider, "openrouter")
+            self.assertEqual(settings.llm_provider, "openrouter")
+            self.assertEqual(settings.embedding_dimension, 1024)
+            self.assertEqual(settings.query_prefix, "query: ")
+            self.assertEqual(settings.document_prefix, "passage: ")
+
+    def test_openrouter_requires_its_api_key(self):
+        with patch.dict(
+            os.environ,
+            {
+                "APP_ENV": "evaluation",
+                "EMBEDDING_PROVIDER": "openrouter",
+                "EMBEDDING_MODEL": "intfloat/multilingual-e5-large",
+                "EMBEDDING_REVISION": "freeze-date",
+                "QUERY_PREFIX": "query: ",
+                "DOCUMENT_PREFIX": "passage: ",
+                "OPENROUTER_API_KEY": "",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "OPENROUTER_API_KEY"):
+                Settings.from_env()
+
     def test_hosted_together_configuration_decodes_prefix_and_is_accepted(self):
         with patch.dict(
             os.environ,

@@ -49,6 +49,26 @@ def build_graph(retriever, settings):
             reasoning_format="hidden",
             reasoning_effort="none",
         )
+    elif settings.llm_provider == "openrouter":
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError as exc:
+            raise RuntimeError("langchain-openai is not installed") from exc
+        headers = {}
+        if settings.openrouter_http_referer:
+            headers["HTTP-Referer"] = settings.openrouter_http_referer
+        if settings.openrouter_app_title:
+            headers["X-Title"] = settings.openrouter_app_title
+        llm = ChatOpenAI(
+            model=settings.llm_model,
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+            default_headers=headers or None,
+            temperature=0,
+            max_tokens=settings.llm_max_tokens,
+            max_retries=0,
+            timeout=60,
+        )
 
     def retrieve(state: RagState) -> dict:
         recent_user_turns = [

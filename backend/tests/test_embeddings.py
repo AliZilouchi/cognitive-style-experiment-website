@@ -3,7 +3,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from sepid_rag.embeddings import TogetherEmbeddings
+from sepid_rag.embeddings import OpenRouterEmbeddings, TogetherEmbeddings
 
 
 class _Item:
@@ -53,6 +53,48 @@ class TogetherEmbeddingTests(unittest.TestCase):
         backend, _ = self._backend([[1.0, 2.0, 3.0]], 2)
         with self.assertRaisesRegex(RuntimeError, "frozen count/dimension"):
             backend.embed_query("پرسش")
+
+
+class OpenRouterEmbeddingTests(unittest.TestCase):
+    def _backend(self, values, dimension=2):
+        captured = {}
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                captured["client"] = kwargs
+                self.embeddings = _EmbeddingsApi(values)
+
+        module = types.SimpleNamespace(OpenAI=FakeOpenAI)
+        with patch.dict(sys.modules, {"openai": module}):
+            backend = OpenRouterEmbeddings(
+                "intfloat/multilingual-e5-large",
+                "secret",
+                "https://openrouter.ai/api/v1",
+                "freeze-date",
+                dimension,
+                "https://study.example.com",
+                "Cognitive Style Experiment",
+            )
+        return backend, captured
+
+    def test_uses_openrouter_without_retries_and_normalizes_vectors(self):
+        backend, captured = self._backend([[3.0, 4.0]])
+        vector = backend.embed_query("query: پرسش")
+        self.assertEqual(captured["client"]["max_retries"], 0)
+        self.assertEqual(
+            captured["client"]["base_url"], "https://openrouter.ai/api/v1"
+        )
+        self.assertEqual(
+            captured["client"]["default_headers"]["HTTP-Referer"],
+            "https://study.example.com",
+        )
+        self.assertAlmostEqual(float(vector[0]), 0.6)
+        self.assertAlmostEqual(float(vector[1]), 0.8)
+
+    def test_rejects_unexpected_openrouter_dimension(self):
+        backend, _ = self._backend([[1.0, 2.0, 3.0]])
+        with self.assertRaisesRegex(RuntimeError, "frozen count/dimension"):
+            backend.embed_query("query: پرسش")
 
 
 if __name__ == "__main__":

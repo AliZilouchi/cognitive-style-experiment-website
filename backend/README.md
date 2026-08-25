@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses Together's hosted `intfloat/multilingual-e5-large-instruct` embedding endpoint at `TOP_K=5` and Groq for grounded Persian generation. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
+The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings at `TOP_K=5` and `openai/gpt-4o-mini` for grounded Persian generation. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
 
 ## What is already implemented
 
@@ -10,13 +10,14 @@ The Vercel-ready release uses Together's hosted `intfloat/multilingual-e5-large-
 - Verification that the allowlist and corpus manifest match
 - Persian retrieval normalization while preserving the original user query
 - Model-specific query/document prefixes recorded as part of the embedding configuration
-- Interchangeable local Sentence Transformers and hosted Together embedding backends
+- Interchangeable local Sentence Transformers, Together, and OpenRouter embedding backends
 - Strict validation of hosted vector count and the frozen 1024 dimension
 - A clearly marked deterministic hashing backend for plumbing tests only
 - Transparent cosine retrieval with fixed `TOP_K` and a reproducible index cache
 - Minimal LangGraph flow: retrieve, then answer
 - Together chat through LangChain's `ChatTogether`
 - Groq chat through LangChain's `ChatGroq`
+- OpenRouter chat and embeddings through its OpenAI-compatible API
 - A Persian grounded-answer prompt with source identifiers
 - FastAPI `/health`, `/chat`, and development-only `/debug/retrieve` endpoints
 - Retrieval evaluation using all gold queries, including the exact three SWTS prompts
@@ -32,7 +33,7 @@ The Vercel-ready release uses Together's hosted `intfloat/multilingual-e5-large-
 - missing credentials for the configured hosted provider;
 - non-positive `TOP_K` values.
 
-Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The selected hosted candidate is Together `intfloat/multilingual-e5-large-instruct` (1024 dimensions) with `TOP_K=5`; its hosted evaluation report must be generated and reviewed before participant data collection. The included local reference report is not falsely relabeled as a hosted result.
+Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The selected hosted candidate is OpenRouter `intfloat/multilingual-e5-large` (1024 dimensions) with `TOP_K=5`; its hosted evaluation report must be generated and reviewed before participant data collection. An older report for the `-instruct` model is not valid for this model.
 
 ## Project layout
 
@@ -100,11 +101,11 @@ The development configuration returns retrieved source IDs rather than pretendin
 ## Real retrieval experiment
 
 1. Copy `.env.evaluation.example` to `.env`.
-2. Replace the Together API-key placeholder. The hosted model, prefix, dimension, and fixed `TOP_K=5` are already configured.
+2. Replace the OpenRouter API-key placeholder. The hosted model, E5 prefixes, dimension, and fixed `TOP_K=5` are already configured.
 3. Run:
 
 ```bash
-python scripts/evaluate_retrieval.py --output reports/together_hosted_k5.json
+python scripts/evaluate_retrieval.py --output reports/openrouter_e5_large_k5.json
 ```
 
 For local Sentence Transformers installation:
@@ -115,7 +116,7 @@ pip install -e ".[local-embeddings]"
 
 Compare the hosted report with `reports/e5_local_k5.json`. Do not use `--allow-development` for model selection; that switch only verifies evaluation plumbing. After accepting the hosted result, use `.env.experiment.example` for the end-to-end pilot and Vercel variables.
 
-If Together does not expose a separate immutable revision for a hosted embedding model, record an explicit provider-managed revision label/date in `EMBEDDING_REVISION` and rebuild the index whenever that label changes. Do not present that label as a provider commit hash.
+Because OpenRouter does not expose an immutable model commit hash here, record a dated catalog label in `EMBEDDING_REVISION` and rebuild the index whenever the model or label changes. Do not present that label as a provider commit hash.
 
 ## Colab
 
@@ -125,7 +126,7 @@ Colab secrets should be read interactively or through Colab Secrets; never save 
 
 ## Docker
 
-Create the experiment environment file and insert your Groq key:
+Create the experiment environment file and insert your OpenRouter key:
 
 ```bash
 cp .env.docker.example .env
@@ -134,7 +135,7 @@ docker compose up --build
 
 The selected Sentence Transformers embedding dependencies are installed by default. The pinned model is downloaded on first startup and retained in the `huggingface-cache` Docker volume. The generated 18-document index is retained separately in `rag-index`.
 
-The frontend should call the backend—not Groq or Together directly. In the
+The frontend should call the backend—not OpenRouter directly. In the
 combined Vercel package, the browser calls the same-origin Next.js proxy and
 that proxy adds `Authorization: Bearer ...` server-side. Set
 `API_SHARED_SECRET` on this service and set the identical value as
@@ -146,7 +147,7 @@ Never use `*` for the final experiment unless there is a documented reason.
 - Select and record the actual embedding provider, model, and revision.
 - Evaluate candidate fixed `TOP_K` values against the included gold set.
 - Inspect the per-query results, especially the broad Creative query and exact SWTS prompts.
-- Select and freeze the Groq or Together chat model.
+- Freeze the OpenRouter chat and embedding model IDs for the complete study.
 - Review and freeze `SYSTEM_PROMPT_VERSION` and prompt contents.
 - Turn off debug retrieval.
 - Confirm the web app logs original messages, timestamps, task/session IDs, returned source IDs, model identity, prompt version, and final responses.

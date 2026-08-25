@@ -33,8 +33,13 @@ def _bool(name: str, default: bool) -> bool:
 
 
 def _prefix(name: str) -> str:
-    """Allow Vercel/Windows env fields to represent the required E5 newline."""
-    return os.getenv(name, "").replace("\\n", "\n").replace("\\t", "\t")
+    """Decode escapes and preserve the separator required by E5 prefixes."""
+    value = os.getenv(name, "").replace("\\n", "\n").replace("\\t", "\t")
+    # Deployment dashboards may trim trailing spaces from `query: ` and
+    # `passage: `. Accept the trimmed forms without changing the model input.
+    if value in {"query:", "passage:"}:
+        value += " "
+    return value
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,10 @@ class Settings:
     llm_max_tokens: int
     together_api_key: str
     groq_api_key: str
+    openrouter_api_key: str
+    openrouter_base_url: str
+    openrouter_http_referer: str
+    openrouter_app_title: str
     api_shared_secret: str
     enable_debug_retrieval: bool
 
@@ -75,6 +84,14 @@ class Settings:
             llm_max_tokens=int(os.getenv("LLM_MAX_TOKENS", "700")),
             together_api_key=os.getenv("TOGETHER_API_KEY", "").strip(),
             groq_api_key=os.getenv("GROQ_API_KEY", "").strip(),
+            openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "").strip(),
+            openrouter_base_url=os.getenv(
+                "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+            ).strip().rstrip("/"),
+            openrouter_http_referer=os.getenv("OPENROUTER_HTTP_REFERER", "").strip(),
+            openrouter_app_title=os.getenv(
+                "OPENROUTER_APP_TITLE", "Cognitive Style Experiment"
+            ).strip(),
             api_shared_secret=os.getenv("API_SHARED_SECRET", "").strip(),
             enable_debug_retrieval=_bool("ENABLE_DEBUG_RETRIEVAL", True),
         )
@@ -92,9 +109,14 @@ class Settings:
             raise ValueError("EMBEDDING_DIMENSION is implausibly small")
         if self.llm_max_tokens < 1:
             raise ValueError("LLM_MAX_TOKENS must be a positive integer")
-        if self.embedding_provider not in {"hashing", "sentence_transformers", "together"}:
+        if self.embedding_provider not in {
+            "hashing",
+            "sentence_transformers",
+            "together",
+            "openrouter",
+        }:
             raise ValueError("Unsupported EMBEDDING_PROVIDER")
-        if self.llm_provider not in {"echo", "together", "groq"}:
+        if self.llm_provider not in {"echo", "together", "groq", "openrouter"}:
             raise ValueError("Unsupported LLM_PROVIDER")
 
         if self.app_env in {"evaluation", "experiment"}:
@@ -111,6 +133,10 @@ class Settings:
                 raise ValueError(f"Embedding configuration has placeholders: {placeholders}")
             if self.embedding_provider == "together" and not self.together_api_key:
                 raise ValueError("TOGETHER_API_KEY is required for Together embeddings")
+            if self.embedding_provider == "openrouter" and (
+                not self.openrouter_api_key or "REPLACE_" in self.openrouter_api_key
+            ):
+                raise ValueError("OPENROUTER_API_KEY is required for OpenRouter embeddings")
 
         if self.app_env == "experiment":
             if len(self.api_shared_secret) < 32 or "REPLACE_" in self.api_shared_secret:
@@ -130,3 +156,12 @@ class Settings:
                 "REPLACE_" in self.groq_api_key or not self.groq_api_key
             ):
                 raise ValueError("GROQ_API_KEY is required in experiment mode")
+            if self.llm_provider == "openrouter" and (
+                "REPLACE_" in self.openrouter_api_key or not self.openrouter_api_key
+            ):
+                raise ValueError("OPENROUTER_API_KEY is required in experiment mode")
+            if (
+                self.embedding_provider == "openrouter"
+                or self.llm_provider == "openrouter"
+            ) and not self.openrouter_base_url.startswith("https://"):
+                raise ValueError("OPENROUTER_BASE_URL must use HTTPS in experiment mode")

@@ -107,6 +107,69 @@ class TogetherEmbeddings:
         return self._embed([text])[0]
 
 
+class OpenRouterEmbeddings:
+    """OpenAI-compatible embedding client pointed at OpenRouter."""
+
+    def __init__(
+        self,
+        model: str,
+        api_key: str,
+        base_url: str,
+        revision: str,
+        expected_dimension: int,
+        http_referer: str = "",
+        app_title: str = "",
+    ) -> None:
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY is required")
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise RuntimeError("The openai package is not installed") from exc
+
+        headers = {}
+        if http_referer:
+            headers["HTTP-Referer"] = http_referer
+        if app_title:
+            headers["X-Title"] = app_title
+
+        self.model_identity = (
+            f"openrouter:{model}@{revision}:dim-{expected_dimension}"
+        )
+        self._model = model
+        self._expected_dimension = expected_dimension
+        self._client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            default_headers=headers or None,
+            max_retries=0,
+            timeout=30,
+        )
+
+    def _embed(self, texts: Sequence[str]) -> np.ndarray:
+        response = self._client.embeddings.create(
+            model=self._model,
+            input=list(texts),
+            encoding_format="float",
+        )
+        ordered = sorted(response.data, key=lambda item: item.index)
+        values = np.asarray([item.embedding for item in ordered], dtype=np.float32)
+        if values.ndim != 2 or values.shape != (
+            len(texts),
+            self._expected_dimension,
+        ):
+            raise RuntimeError(
+                "Hosted embedding response did not match the frozen count/dimension"
+            )
+        return _unit_rows(values)
+
+    def embed_documents(self, texts: Sequence[str]) -> np.ndarray:
+        return self._embed(texts)
+
+    def embed_query(self, text: str) -> np.ndarray:
+        return self._embed([text])[0]
+
+
 class PrefixedEmbeddings:
     """Apply model-specific prefixes and include them in the cached identity."""
 
@@ -141,6 +204,16 @@ def create_embeddings(settings) -> EmbeddingBackend:
             settings.together_api_key,
             settings.embedding_revision,
             settings.embedding_dimension,
+        )
+    elif settings.embedding_provider == "openrouter":
+        backend = OpenRouterEmbeddings(
+            settings.embedding_model,
+            settings.openrouter_api_key,
+            settings.openrouter_base_url,
+            settings.embedding_revision,
+            settings.embedding_dimension,
+            settings.openrouter_http_referer,
+            settings.openrouter_app_title,
         )
     else:
         raise ValueError(f"Unknown embedding provider: {settings.embedding_provider}")

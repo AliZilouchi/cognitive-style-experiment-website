@@ -5,21 +5,21 @@
 - وب‌سایت فارسی Next.js برای Vercel
 - Supabase برای دعوت‌نامه، فرم‌ها، E-CSA-WA، تاریخچهٔ کامل SWTS و داشبورد پژوهشگر
 - بک‌اند FastAPI/LangGraph در پوشهٔ `backend`، آمادهٔ Vercel
-- ۱۸ منبع ثابت، embedding میزبانی‌شدهٔ Together با `top_k=5` و تولید فارسی با Groq
+- ۱۸ منبع ثابت، embedding میزبانی‌شدهٔ OpenRouter با `top_k=5` و تولید فارسی با GPT-4o mini
 - گفت‌وگوی آزاد و پیش‌نمایش پژوهشگر بدون ذخیره در Supabase
 
 ## معماری استقرار
 
-مرورگر هرگز مستقیماً به Groq یا بک‌اند RAG وصل نمی‌شود:
+مرورگر هرگز مستقیماً به OpenRouter یا بک‌اند RAG وصل نمی‌شود:
 
 ```text
-Browser → Next.js/Vercel proxy → FastAPI/Vercel → Together + Groq
+Browser → Next.js/Vercel proxy → FastAPI/Vercel → OpenRouter
                     ↓
                  Supabase
 ```
 
 وب‌سایت و پراکسی امن در یک پروژهٔ Vercel و FastAPI در پروژهٔ دوم Vercel اجرا
-می‌شوند. مدل embedding دقیق `intfloat/multilingual-e5-large-instruct` از Together
+می‌شوند. مدل embedding دقیق `intfloat/multilingual-e5-large` از OpenRouter
 فراخوانی می‌شود؛ بنابراین رایانهٔ پژوهشگر، Docker، GPU و دانلود مدل لازم نیست.
 
 راهنمای دقیق استقرار: [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md)
@@ -32,7 +32,7 @@ Browser → Next.js/Vercel proxy → FastAPI/Vercel → Together + Groq
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-کلیدهای Together و Groq را فقط در `backend\.env` وارد کنید. مقدار secret خروجی
+کلید OpenRouter را فقط در `backend\.env` وارد کنید. مقدار secret خروجی
 را در دو محل یکسان وارد کنید:
 
 - `RAG_API_TOKEN` در `.env.local`
