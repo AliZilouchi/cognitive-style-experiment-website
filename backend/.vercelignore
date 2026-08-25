@@ -1,0 +1,12 @@
+.env
+.env.*.local
+.venv
+Dockerfile
+docker-compose.yml
+notebooks
+reports
+scripts
+tests
+corpus/evaluation
+corpus/sources.zip
+data

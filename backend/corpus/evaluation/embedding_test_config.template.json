@@ -1,0 +1,10 @@
+{
+  "model_name_or_path": "REPLACE_WITH_FINAL_MODEL",
+  "revision": "REPLACE_WITH_PINNED_REVISION",
+  "top_k": null,
+  "query_prefix": "",
+  "document_prefix": "",
+  "normalize_embeddings": true,
+  "similarity": "cosine",
+  "trust_remote_code": false
+}

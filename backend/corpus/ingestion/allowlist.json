@@ -1,0 +1,23 @@
+{
+  "corpus_id": "sepid_island_fa_v2",
+  "sources": [
+    {"source_id":"S01","relative_path":"sources/01_island_overview.md"},
+    {"source_id":"S02","relative_path":"sources/02_accommodation_port.md"},
+    {"source_id":"S03","relative_path":"sources/03_accommodation_nature.md"},
+    {"source_id":"S04","relative_path":"sources/04_accommodation_booking.md"},
+    {"source_id":"S05","relative_path":"sources/05_travel_periods_weather.md"},
+    {"source_id":"S06","relative_path":"sources/06_travel_periods_cost.md"},
+    {"source_id":"S07","relative_path":"sources/07_attractions_year_round.md"},
+    {"source_id":"S08","relative_path":"sources/08_attractions_coast.md"},
+    {"source_id":"S09","relative_path":"sources/09_attractions_height.md"},
+    {"source_id":"S10","relative_path":"sources/10_attractions_waterlands.md"},
+    {"source_id":"S11","relative_path":"sources/11_market_morning_account.md"},
+    {"source_id":"S12","relative_path":"sources/12_home_visit_account.md"},
+    {"source_id":"S13","relative_path":"sources/13_craft_workshop_note.md"},
+    {"source_id":"S14","relative_path":"sources/14_teahouse_observation.md"},
+    {"source_id":"S15","relative_path":"sources/15_residential_lane_notice.md"},
+    {"source_id":"S16","relative_path":"sources/16_minibus_account.md"},
+    {"source_id":"S17","relative_path":"sources/17_neighborhood_water_stations.md"},
+    {"source_id":"S18","relative_path":"sources/18_evening_story_circle.md"}
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "corpus_id": "sepid_island_fa_v2",
+  "package_revision": "2.1",
+  "language": "fa",
+  "fictional_domain": true,
+  "inject_directory": "sources",
+  "ingestion_allowlist": "ingestion/allowlist.json",
+  "ingestion_loader": "ingestion/load_allowlisted_sources.py",
+  "source_count": 18,
+  "exclude_from_injection": ["README.md", "corpus_manifest.json", "evaluation"],
+  "sources": [
+    {"source_id":"S01","file":"01_island_overview.md","topic":"overview"},
+    {"source_id":"S02","file":"02_accommodation_port.md","topic":"accommodation"},
+    {"source_id":"S03","file":"03_accommodation_nature.md","topic":"accommodation"},
+    {"source_id":"S04","file":"04_accommodation_booking.md","topic":"accommodation_rules"},
+    {"source_id":"S05","file":"05_travel_periods_weather.md","topic":"travel_period_weather"},
+    {"source_id":"S06","file":"06_travel_periods_cost.md","topic":"travel_period_cost"},
+    {"source_id":"S07","file":"07_attractions_year_round.md","topic":"attraction_availability"},
+    {"source_id":"S08","file":"08_attractions_coast.md","topic":"attraction_availability"},
+    {"source_id":"S09","file":"09_attractions_height.md","topic":"attraction_availability"},
+    {"source_id":"S10","file":"10_attractions_waterlands.md","topic":"attraction_availability"},
+    {"source_id":"S11","file":"11_market_morning_account.md","topic":"resident_interaction"},
+    {"source_id":"S12","file":"12_home_visit_account.md","topic":"resident_interaction"},
+    {"source_id":"S13","file":"13_craft_workshop_note.md","topic":"resident_interaction"},
+    {"source_id":"S14","file":"14_teahouse_observation.md","topic":"resident_interaction"},
+    {"source_id":"S15","file":"15_residential_lane_notice.md","topic":"resident_interaction"},
+    {"source_id":"S16","file":"16_minibus_account.md","topic":"resident_interaction"},
+    {"source_id":"S17","file":"17_neighborhood_water_stations.md","topic":"resident_interaction"},
+    {"source_id":"S18","file":"18_evening_story_circle.md","topic":"resident_interaction"}
+  ]
+}

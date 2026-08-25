@@ -1,0 +1,9 @@
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+numpy>=1.26,<3
+langchain-core>=0.3,<2
+langgraph>=0.2,<2
+langchain-together>=0.3,<2
+langchain-groq>=0.3,<2
+together>=1.3,<3
+python-dotenv>=1,<2

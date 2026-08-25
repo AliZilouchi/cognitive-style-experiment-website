@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: sepid-rag-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: experiment
+      - key: EMBEDDING_PROVIDER
+        value: together
+      - key: EMBEDDING_MODEL
+        value: intfloat/multilingual-e5-large-instruct
+      - key: EMBEDDING_REVISION
+        value: together-serverless-catalog-2026-08-25
+      - key: EMBEDDING_DIMENSION
+        value: "1024"
+      - key: QUERY_PREFIX
+        value: "Instruct: Given a Persian search query, retrieve relevant Persian passages that answer the query\nQuery: "
+      - key: DOCUMENT_PREFIX
+        value: ""
+      - key: TOP_K
+        value: "5"
+      - key: LLM_PROVIDER
+        value: groq
+      - key: LLM_MODEL
+        value: qwen/qwen3.6-27b
+      - key: LLM_MAX_TOKENS
+        value: "700"
+      - key: ENABLE_DEBUG_RETRIEVAL
+        value: "false"
+      - key: INDEX_DIR
+        value: /tmp/sepid-index
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: API_SHARED_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
