@@ -89,7 +89,8 @@ type SwtsDetails = {
   attempts: SwtsAttempt[];
 };
 type StudyFormRecord = { form_name: string; form_version: string; task_id: string; task_position: number | null; responses: Record<string, unknown>; submitted_at: string };
-type DashboardData = { summary: Summary; participants: Participant[] };
+type InvitationCode = { id: string; code: string; status: string; created_at: string; expires_at: string | null };
+type DashboardData = { summary: Summary; participants: Participant[]; invitations: InvitationCode[] };
 
 const AUTH_STORAGE_KEY = "study-researcher-auth";
 
@@ -129,6 +130,10 @@ const copy = {
     copy: "Copy code",
     copied: "Copied",
     duplicateCode: "That invitation code already exists. Generate a new one.",
+    availableCodes: "Available invitation codes",
+    noAvailableCodes: "No retrievable unused codes. Create a new invitation above.",
+    createdAt: "Created",
+    expired: "Expired",
     participants: "Participant monitoring",
     search: "Search participant ID",
     allPhases: "All phases",
@@ -212,6 +217,10 @@ const copy = {
     copy: "کپی کد",
     copied: "کپی شد",
     duplicateCode: "این کد قبلاً وجود دارد. یک کد جدید بسازید.",
+    availableCodes: "کدهای دعوت موجود",
+    noAvailableCodes: "هیچ کد استفاده‌نشدهٔ قابل‌بازیابی وجود ندارد. یک دعوت‌نامهٔ جدید بسازید.",
+    createdAt: "ساخته‌شده",
+    expired: "منقضی‌شده",
     participants: "پایش شرکت‌کنندگان",
     search: "جست‌وجوی شناسه شرکت‌کننده",
     allPhases: "همه مراحل",
@@ -377,15 +386,19 @@ export default function ResearcherDashboard({
     if (showBusy) setRefreshing(true);
     setAuthError("");
     try {
-      const response = await researcherRpc("researcher_dashboard", {}, session);
-      if (!response.ok) {
-        const message = await response.text();
+      const [response, invitationResponse] = await Promise.all([
+        researcherRpc("researcher_dashboard", {}, session),
+        researcherRpc("researcher_list_invitation_codes", {}, session),
+      ]);
+      if (!response.ok || !invitationResponse.ok) {
+        const message = !response.ok ? await response.text() : await invitationResponse.text();
         if (response.status === 404 || message.includes("researcher_dashboard")) throw new Error("migration_missing");
         if (response.status === 401 || response.status === 403) throw new Error("access_denied");
         throw new Error("dashboard_failed");
       }
-      const result = await response.json() as DashboardData;
-      setDashboard(result);
+      const result = await response.json() as Omit<DashboardData, "invitations">;
+      const invitations = await invitationResponse.json() as InvitationCode[];
+      setDashboard({ ...result, invitations });
       if (selected) {
         setSelected(result.participants.find((item) => item.session_id === selected.session_id) || null);
       }
@@ -612,6 +625,16 @@ export default function ResearcherDashboard({
         {invitationError && <p className="error" role="alert">{invitationError}</p>}
         {createdCode && <div className="created-code"><span>{t.created}</span><strong dir="ltr">{createdCode}</strong><button type="button" onClick={() => void copyCreatedCode()}>{copied ? t.copied : t.copy}</button></div>}
         <button className="primary" disabled={invitationBusy || !online}>{invitationBusy ? t.creating : t.create}</button>
+        <div className="available-invitations">
+          <strong>{t.availableCodes}</strong>
+          {!dashboard.invitations.length ? <p className="muted">{t.noAvailableCodes}</p> : dashboard.invitations.map((invitation) => {
+            const expired = Boolean(invitation.expires_at && new Date(invitation.expires_at).getTime() <= Date.now());
+            return <div className="available-invitation" key={invitation.id}>
+              <div><code dir="ltr">{invitation.code}</code><small>{t.createdAt}: {formatDate(invitation.created_at, language)}{invitation.expires_at ? ` · ${t.expiry}: ${formatDate(invitation.expires_at, language)}` : ""}</small></div>
+              {expired ? <span className="status-pill">{t.expired}</span> : <button type="button" onClick={() => void navigator.clipboard.writeText(invitation.code)}>{t.copy}</button>}
+            </div>;
+          })}
+        </div>
       </form>
       <div className="card export-tool"><p className="card-kicker">{t.exports}</p><p className="muted">{language === "fa" ? "خروجی خلاصه، داده‌های آزمون، فرم‌ها یا گفت‌وگوهای SWTS را دریافت کنید." : "Download participant, test, form, or SWTS conversation data."}</p><button className="secondary" onClick={exportParticipantSummary}>{t.exportSummary}</button><button className="secondary" onClick={() => void exportAllTrials()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportTrials}</button><button className="secondary" onClick={() => void exportAllSwts()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportSwts}</button><button className="secondary" onClick={() => void exportAllForms()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportForms}</button></div>
     </div>
