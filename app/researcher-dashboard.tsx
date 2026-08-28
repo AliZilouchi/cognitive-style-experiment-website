@@ -25,6 +25,9 @@ type Participant = {
   completed_at: string | null;
   invitation_status: string;
   invitation_expires_at: string | null;
+  invitation_code: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
   test_status: string;
   items_completed: number;
   saved_test_answers: number;
@@ -138,6 +141,13 @@ const copy = {
     search: "Search participant ID",
     allPhases: "All phases",
     noParticipants: "No matching participants.",
+    activeView: "Active",
+    trashView: "Trash",
+    archive: "Move to trash",
+    restore: "Restore",
+    archiveConfirm: "Move this participant session to trash? No research data will be deleted.",
+    sessionActionFailed: "The session could not be updated.",
+    unavailableCode: "Unavailable",
     participant: "Participant",
     phase: "Phase",
     test: "Test",
@@ -225,6 +235,13 @@ const copy = {
     search: "جست‌وجوی شناسه شرکت‌کننده",
     allPhases: "همه مراحل",
     noParticipants: "شرکت‌کننده‌ای مطابق جست‌وجو نیست.",
+    activeView: "فعال",
+    trashView: "سطل زباله",
+    archive: "انتقال به سطل زباله",
+    restore: "بازیابی",
+    archiveConfirm: "این جلسه به سطل زباله منتقل شود؟ هیچ دادهٔ پژوهشی حذف نخواهد شد.",
+    sessionActionFailed: "وضعیت جلسه به‌روزرسانی نشد.",
+    unavailableCode: "در دسترس نیست",
     participant: "شرکت‌کننده",
     phase: "مرحله",
     test: "آزمون",
@@ -295,6 +312,8 @@ export default function ResearcherDashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [phase, setPhase] = useState("all");
+  const [sessionView, setSessionView] = useState<"active" | "trash">("active");
+  const [sessionActionBusy, setSessionActionBusy] = useState("");
   const [invitationCode, setInvitationCode] = useState("");
   const [expiry, setExpiry] = useState("7");
   const [invitationBusy, setInvitationBusy] = useState(false);
@@ -334,11 +353,12 @@ export default function ResearcherDashboard({
   const filteredParticipants = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return (dashboard?.participants || []).filter((participant) => {
-      const matchesSearch = !needle || participant.participant_id.toLowerCase().includes(needle);
+      const matchesView = sessionView === "trash" ? Boolean(participant.archived_at) : !participant.archived_at;
+      const matchesSearch = !needle || participant.participant_id.toLowerCase().includes(needle) || participant.invitation_code?.toLowerCase().includes(needle);
       const matchesPhase = phase === "all" || participant.current_phase === phase;
-      return matchesSearch && matchesPhase;
+      return matchesView && matchesSearch && matchesPhase;
     });
-  }, [dashboard, search, phase]);
+  }, [dashboard, search, phase, sessionView]);
 
   function saveAuth(session: AuthSession) {
     setAuth(session);
@@ -386,21 +406,36 @@ export default function ResearcherDashboard({
     if (showBusy) setRefreshing(true);
     setAuthError("");
     try {
-      const [response, invitationResponse] = await Promise.all([
+      const [response, invitationResponse, participantResponse] = await Promise.all([
         researcherRpc("researcher_dashboard", {}, session),
         researcherRpc("researcher_list_invitation_codes", {}, session),
+        researcherRpc("researcher_participant_sessions", {}, session),
       ]);
-      if (!response.ok || !invitationResponse.ok) {
-        const message = !response.ok ? await response.text() : await invitationResponse.text();
+      if (!response.ok || !invitationResponse.ok || !participantResponse.ok) {
+        const failedResponse = !response.ok ? response : !invitationResponse.ok ? invitationResponse : participantResponse;
+        const message = await failedResponse.text();
         if (response.status === 404 || message.includes("researcher_dashboard")) throw new Error("migration_missing");
-        if (response.status === 401 || response.status === 403) throw new Error("access_denied");
+        if (failedResponse.status === 401 || failedResponse.status === 403) throw new Error("access_denied");
         throw new Error("dashboard_failed");
       }
       const result = await response.json() as Omit<DashboardData, "invitations">;
       const invitations = await invitationResponse.json() as InvitationCode[];
-      setDashboard({ ...result, invitations });
+      const participants = await participantResponse.json() as Participant[];
+      const visibleParticipants = participants.filter((item) => !item.archived_at);
+      const nextDashboard: DashboardData = {
+        ...result,
+        invitations,
+        participants,
+        summary: {
+          ...result.summary,
+          total_sessions: visibleParticipants.length,
+          active_sessions: visibleParticipants.filter((item) => !item.completed_at).length,
+          completed_tests: visibleParticipants.filter((item) => item.test_status === "completed").length,
+        },
+      };
+      setDashboard(nextDashboard);
       if (selected) {
-        setSelected(result.participants.find((item) => item.session_id === selected.session_id) || null);
+        setSelected(participants.find((item) => item.session_id === selected.session_id) || null);
       }
     } catch (error) {
       const reason = error instanceof Error ? error.message : "dashboard_failed";
@@ -530,9 +565,36 @@ export default function ResearcherDashboard({
     }
   }
 
+  async function setSessionArchived(participant: Participant, archived: boolean) {
+    if (archived && !window.confirm(t.archiveConfirm)) return;
+    setSessionActionBusy(participant.session_id);
+    setAuthError("");
+    try {
+      const response = await researcherRpc("researcher_set_session_archived", {
+        p_session_id: participant.session_id,
+        p_archived: archived,
+      });
+      if (!response.ok) throw new Error("session_action_failed");
+      const result = await response.json();
+      if (!result?.accepted) throw new Error("session_action_failed");
+      if (selected?.session_id === participant.session_id) {
+        setSelected(null);
+        setTrials(null);
+        setSwtsDetails(null);
+        setFormDetails(null);
+      }
+      await loadDashboard(auth, false);
+    } catch {
+      setAuthError(t.sessionActionFailed);
+    } finally {
+      setSessionActionBusy("");
+    }
+  }
+
   function exportParticipantSummary() {
     if (!dashboard) return;
-    const rows = dashboard.participants.map((participant) => ({
+    const rows = dashboard.participants.filter((participant) => !participant.archived_at).map((participant) => ({
+      invitation_code: participant.invitation_code,
       participant_id: participant.participant_id,
       current_phase: participant.current_phase,
       created_at: participant.created_at,
@@ -641,12 +703,14 @@ export default function ResearcherDashboard({
 
     <div className="card participant-monitor">
       <div className="monitor-heading"><div><p className="card-kicker">{t.participants}</p><strong>{filteredParticipants.length}</strong></div><div className="monitor-filters"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} /><select value={phase} onChange={(event) => setPhase(event.target.value)}><option value="all">{t.allPhases}</option><option value="introduction">Introduction</option><option value="demographics">Demographics</option><option value="test">E-CSA-WA</option><option value="think_aloud">Think aloud</option><option value="pre_task">Pre-task</option><option value="swts">SWTS</option><option value="post_task">Post-task</option><option value="comparative">Final comparison</option><option value="complete">Complete</option></select></div></div>
-      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{t.participant}</th><th>{t.phase}</th><th>{t.test}</th><th>{t.items}</th><th>{t.ratio}</th><th>{t.lastSeen}</th><th /></tr></thead><tbody>{filteredParticipants.map((participant) => <tr key={participant.session_id}><td><code>{shortId(participant.participant_id)}</code></td><td><StatusPill value={participant.current_phase} /></td><td>{participant.test_status}</td><td>{participant.saved_test_answers} / 80</td><td>{formatNumber(participant.wholistic_analytic_ratio)}</td><td>{formatDate(participant.last_seen_at, language)}</td><td><button onClick={() => void loadTrials(participant)}>{t.inspect}</button></td></tr>)}</tbody></table>{!filteredParticipants.length && <p className="empty-state">{t.noParticipants}</p>}</div>
+      <div className="session-view-tabs"><button className={sessionView === "active" ? "active" : ""} onClick={() => setSessionView("active")}>{t.activeView} ({dashboard.participants.filter((item) => !item.archived_at).length})</button><button className={sessionView === "trash" ? "active" : ""} onClick={() => setSessionView("trash")}>{t.trashView} ({dashboard.participants.filter((item) => item.archived_at).length})</button></div>
+      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{t.participant}</th><th>{t.code}</th><th>{t.phase}</th><th>{t.test}</th><th>{t.items}</th><th>{t.ratio}</th><th>{t.lastSeen}</th><th /></tr></thead><tbody>{filteredParticipants.map((participant) => <tr key={participant.session_id}><td><code>{shortId(participant.participant_id)}</code></td><td><code dir="ltr">{participant.invitation_code || t.unavailableCode}</code></td><td><StatusPill value={participant.current_phase} /></td><td>{participant.test_status}</td><td>{participant.saved_test_answers} / 80</td><td>{formatNumber(participant.wholistic_analytic_ratio)}</td><td>{formatDate(participant.last_seen_at, language)}</td><td className="session-actions"><button onClick={() => void loadTrials(participant)}>{t.inspect}</button><button className={participant.archived_at ? "restore-action" : "archive-action"} disabled={sessionActionBusy === participant.session_id} onClick={() => void setSessionArchived(participant, !participant.archived_at)}>{participant.archived_at ? t.restore : t.archive}</button></td></tr>)}</tbody></table>{!filteredParticipants.length && <p className="empty-state">{t.noParticipants}</p>}</div>
     </div>
 
     {selected && <div className="card participant-detail">
       <div className="detail-heading"><div><p className="card-kicker">{t.detail}</p><h2><code>{shortId(selected.participant_id)}</code></h2></div><button className="admin-text-button" onClick={() => { setSelected(null); setTrials(null); setSwtsDetails(null); setFormDetails(null); }}>{t.close}</button></div>
       <div className="detail-grid">
+        <Detail label={t.code} value={selected.invitation_code || t.unavailableCode} />
         <Detail label={t.phase} value={selected.current_phase} />
         <Detail label={t.consent} value={selected.consented ? t.yes : t.no} />
         <Detail label={t.age} value={selected.age_range || t.none} />
