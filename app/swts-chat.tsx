@@ -122,15 +122,23 @@ export function ExperimentSwtsChat({
   const [submittingFinal, setSubmittingFinal] = useState(false);
   const [remaining, setRemaining] = useState(SWTS_TIME_LIMIT_SECONDS);
   const messagesEnd = useRef<HTMLDivElement | null>(null);
+  const onTaskLoadedRef = useRef(onTaskLoaded);
 
   const messages = useMemo(() => successfulMessages(state?.exchanges || []), [state]);
   const currentTask = state?.task_id ? SWTS_TASKS[state.task_id] : null;
   const currentWords = wordCount(finalResponse);
   const finalTooLong = Boolean(currentTask?.maxWords && currentWords > currentTask.maxWords);
 
-  // Restore from the appropriate persistence adapter whenever preview context changes.
+  useEffect(() => { onTaskLoadedRef.current = onTaskLoaded; }, [onTaskLoaded]);
+
+  // In the real experiment, restore once per participant session. Parent task
+  // metadata updates must not restart this component. Preview mode deliberately
+  // restores when its selected task or order changes.
+  const restoreContextKey = mode === "preview"
+    ? `preview:${previewTaskId}:${previewPosition}:${previewOrder.join(",")}`
+    : `experiment:${session.session_id}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void restore(); }, [mode, previewTaskId, previewOrder]);
+  useEffect(() => { void restore(); }, [restoreContextKey]);
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length, pendingMessage]);
   useEffect(() => {
     if (!state?.task_started_at || state.status === "completed" || mode === "preview") return;
@@ -160,11 +168,13 @@ export function ExperimentSwtsChat({
       setState(result);
       setFinalResponse("");
       setRemaining(SWTS_TIME_LIMIT_SECONDS);
-      if (result.task_id) onTaskLoaded?.({ taskId: result.task_id, position: result.current_position, order: result.task_order });
-      await verifyHealth();
+      if (result.task_id) onTaskLoadedRef.current?.({ taskId: result.task_id, position: result.current_position, order: result.task_order });
+      setLoading(false);
+      void verifyHealth();
     } catch {
       setError("بازیابی مرحله گفت‌وگو انجام نشد. اتصال را بررسی و دوباره تلاش کنید.");
-    } finally { setLoading(false); }
+      setLoading(false);
+    }
   }
 
   async function verifyHealth() {

@@ -374,6 +374,19 @@ export default function Home() {
     if (!previewMode) window.localStorage.setItem("study-swts-current", JSON.stringify(meta));
   }
 
+  function handleTaskLoaded(meta: SwtsTaskMeta) {
+    applyTaskMeta(meta);
+    if (previewMode) {
+      void recordEvent("swts_task_opened", { version: "swts-flow-v3", task_id: meta.taskId, task_position: meta.position }, "swts");
+      return;
+    }
+    if (!session) return;
+    const openedKey = `study-swts-opened:${session.session_id}:${meta.taskId}:${meta.position}`;
+    if (window.localStorage.getItem(openedKey)) return;
+    window.localStorage.setItem(openedKey, new Date().toISOString());
+    void recordEvent("swts_task_opened", { version: "swts-flow-v3", task_id: meta.taskId, task_position: meta.position }, "swts");
+  }
+
   async function prepareFirstSwtsTask() {
     if (!session) return;
     if (previewMode) {
@@ -726,7 +739,7 @@ export default function Home() {
             </>}
             {stage === "think_aloud" && <ThinkAloudPage onContinue={prepareFirstSwtsTask} />}
             {stage === "pre_task" && <PreTaskForm key={`${currentTaskId}-${currentTaskPosition}`} taskId={currentTaskId} position={currentTaskPosition} onSubmit={(responses) => recordEvent("swts_pre_task_submitted", { version: "swts-pre-task-fa-v1", task_id: currentTaskId, task_position: currentTaskPosition, responses }, "swts")} />}
-            {stage === "swts" && session && <ExperimentSwtsChat key={`${previewMode ? "preview" : "experiment"}-${currentTaskId}-${currentTaskPosition}`} session={session} mode={previewMode ? "preview" : "experiment"} previewTaskId={currentTaskId} previewPosition={currentTaskPosition} previewOrder={taskOrder} simulateRagFailure={previewRagFailure} onTaskLoaded={(meta) => { applyTaskMeta(meta); void recordEvent("swts_task_opened", { version: "swts-flow-v2", task_id: meta.taskId, task_position: meta.position }, "swts"); }} onTaskComplete={handleTaskComplete} />}
+            {stage === "swts" && session && <ExperimentSwtsChat key={previewMode ? `preview-${currentTaskId}-${currentTaskPosition}` : `experiment-${session.session_id}`} session={session} mode={previewMode ? "preview" : "experiment"} previewTaskId={currentTaskId} previewPosition={currentTaskPosition} previewOrder={taskOrder} simulateRagFailure={previewRagFailure} onTaskLoaded={handleTaskLoaded} onTaskComplete={handleTaskComplete} />}
             {stage === "post_task" && completedTask && <PostTaskForm key={`${completedTask.taskId}-${completedTask.position}`} taskId={completedTask.taskId} position={completedTask.position} onSubmit={(responses) => continueAfterPostTask(responses)} />}
             {stage === "comparative" && <ComparativeForm taskOrder={taskOrder} onSubmit={(responses) => recordEvent("final_comparative_submitted", { version: "final-comparative-fa-v1", task_order: taskOrder, responses }, "complete")} />}
             {stage === "complete" && <div className="study-complete"><span>✓</span><p className="card-kicker">پایان مطالعه</p><h2>از همراهی شما سپاسگزاریم</h2><p>تمام بخش‌ها کامل شدند. لطفاً این صفحه را باز نگه دارید و به پژوهشگر اطلاع دهید.</p>{previewMode && <button className="primary" onClick={leavePreview}>بازگشت به داشبورد پژوهشگر</button>}</div>}
