@@ -1,7 +1,7 @@
 export type SwtsTaskId = "task_1" | "task_2" | "task_3";
 
 export const SWTS_VERSION = "sepid-island-fa-swts-v1";
-export const SWTS_TIME_LIMIT_SECONDS = 12 * 60;
+export const SWTS_TIME_LIMIT_SECONDS = 60 * 60;
 
 // This block is intentionally defined once and shown unchanged for every task.
 export const SWTS_COMMON_CONTEXT = `شما و پنج نفر از دوستان و اعضای خانواده قصد دارید سفری پنج‌روزه به جزیره‌ی سپید داشته باشید. کارهای آماده‌سازی سفر بین اعضای گروه تقسیم شده و از شما خواسته شده است در چند بخش به گروه کمک کنید.
