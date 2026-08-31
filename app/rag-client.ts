@@ -92,7 +92,7 @@ export async function checkRagHealth(): Promise<RagHealthResponse> {
     result.status !== "ok" ||
     result.environment !== "experiment" ||
     result.source_count !== 18 ||
-    result.top_k !== 5
+    result.top_k !== 3
   ) {
     throw new RagRequestError("invalid_health");
   }
