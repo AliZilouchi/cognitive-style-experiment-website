@@ -28,20 +28,32 @@ class RagService:
             embeddings,
             resolved.top_k,
             index_dir=resolved.index_dir,
+            score_margin=resolved.retrieval_score_margin,
+            max_chunks_per_source=resolved.max_chunks_per_source,
+            mmr_lambda=resolved.mmr_lambda,
         )
         return cls(resolved, retriever, build_graph(retriever, resolved))
 
-    def chat(self, query: str, history: list[dict[str, str]] | None = None) -> dict:
+    def chat(
+        self,
+        query: str,
+        task_id: str,
+        history: list[dict[str, str]] | None = None,
+    ) -> dict:
         original_query = query.strip()
         if not original_query:
             raise ValueError("query cannot be empty")
-        result = self.graph.invoke({"query": original_query, "history": history or []})
+        result = self.graph.invoke(
+            {"query": original_query, "task_id": task_id, "history": history or []}
+        )
         retrieved = result["retrieved"]
         return {
             "answer": result["answer"],
             "sources": [
                 {
                     "source_id": item.source_id,
+                    "chunk_id": item.chunk_id,
+                    "topic": item.topic,
                     "relative_path": item.relative_path,
                     "rank": item.rank,
                     "score": round(item.score, 6),
@@ -49,7 +61,9 @@ class RagService:
                 for item in retrieved
             ],
             "retrieval": {
-                "top_k": self.settings.top_k,
+                "requested_top_k": self.settings.top_k,
+                "returned_chunks": len(retrieved),
+                "task_id": task_id,
                 "embedding_model": self.retriever.embeddings.model_identity,
                 "query": result["retrieval_query"],
             },

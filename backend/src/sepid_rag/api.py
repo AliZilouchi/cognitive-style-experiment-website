@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.4.0", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="0.5.0", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(
@@ -69,7 +69,8 @@ def health(request: Request) -> dict:
     return {
         "status": "ok",
         "environment": service.settings.app_env,
-        "source_count": len(service.retriever.documents),
+        "source_count": service.retriever.source_count,
+        "chunk_count": len(service.retriever.documents),
         "top_k": service.settings.top_k,
         "embedding_model": service.retriever.embeddings.model_identity,
         "llm_provider": service.settings.llm_provider,
@@ -83,6 +84,7 @@ def chat(payload: ChatRequest, request: Request) -> dict:
     try:
         response = service.chat(
             payload.message,
+            payload.task_id,
             [item.model_dump() for item in payload.history],
         )
     except ValueError as exc:
@@ -104,7 +106,7 @@ def chat(payload: ChatRequest, request: Request) -> dict:
 
 
 @app.get("/debug/retrieve", dependencies=[Depends(require_api_access)])
-def debug_retrieve(q: str, request: Request) -> dict:
+def debug_retrieve(q: str, request: Request, task_id: str | None = None) -> dict:
     service: RagService = request.app.state.rag
     if not service.settings.enable_debug_retrieval:
         raise HTTPException(status_code=404, detail="Not found")
@@ -115,10 +117,12 @@ def debug_retrieve(q: str, request: Request) -> dict:
         "results": [
             {
                 "source_id": item.source_id,
+                "chunk_id": item.chunk_id,
+                "topic": item.topic,
                 "rank": item.rank,
                 "score": round(item.score, 6),
                 "relative_path": item.relative_path,
             }
-            for item in service.retriever.search(q)
+            for item in service.retriever.search(q, task_id)
         ],
     }

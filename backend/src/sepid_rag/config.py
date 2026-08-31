@@ -54,6 +54,9 @@ class Settings:
     query_prefix: str
     document_prefix: str
     top_k: int
+    retrieval_score_margin: float
+    max_chunks_per_source: int
+    mmr_lambda: float
     llm_provider: str
     llm_model: str
     llm_max_tokens: int
@@ -78,7 +81,10 @@ class Settings:
             embedding_dimension=int(os.getenv("EMBEDDING_DIMENSION", "768")),
             query_prefix=_prefix("QUERY_PREFIX"),
             document_prefix=_prefix("DOCUMENT_PREFIX"),
-            top_k=int(os.getenv("TOP_K", "5")),
+            top_k=int(os.getenv("TOP_K", "3")),
+            retrieval_score_margin=float(os.getenv("RETRIEVAL_SCORE_MARGIN", "0.12")),
+            max_chunks_per_source=int(os.getenv("MAX_CHUNKS_PER_SOURCE", "2")),
+            mmr_lambda=float(os.getenv("MMR_LAMBDA", "0.75")),
             llm_provider=os.getenv("LLM_PROVIDER", "echo").strip().lower(),
             llm_model=os.getenv("LLM_MODEL", "development-only").strip(),
             llm_max_tokens=int(os.getenv("LLM_MAX_TOKENS", "700")),
@@ -103,8 +109,14 @@ class Settings:
             raise ValueError("APP_ENV must be development, test, evaluation, or experiment")
         if self.top_k < 1:
             raise ValueError("TOP_K must be a positive integer")
-        if self.top_k > 18:
-            raise ValueError("TOP_K cannot exceed the fixed 18-document corpus")
+        if self.top_k > 10:
+            raise ValueError("TOP_K cannot exceed 10 semantic chunks")
+        if not 0 <= self.retrieval_score_margin <= 2:
+            raise ValueError("RETRIEVAL_SCORE_MARGIN must be between 0 and 2")
+        if self.max_chunks_per_source < 1:
+            raise ValueError("MAX_CHUNKS_PER_SOURCE must be positive")
+        if not 0 <= self.mmr_lambda <= 1:
+            raise ValueError("MMR_LAMBDA must be between 0 and 1")
         if self.embedding_dimension < 8:
             raise ValueError("EMBEDDING_DIMENSION is implausibly small")
         if self.llm_max_tokens < 1:

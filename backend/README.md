@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings at `TOP_K=5` and `openai/gpt-4o-mini` for grounded Persian generation. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
+The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The 18 sources are split into 56 semantic Markdown chunks; retrieval is limited to the active SWTS task, uses the current question only, and returns up to three diverse chunks. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
 
 ## What is already implemented
 
@@ -13,7 +13,7 @@ The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-la
 - Interchangeable local Sentence Transformers, Together, and OpenRouter embedding backends
 - Strict validation of hosted vector count and the frozen 1024 dimension
 - A clearly marked deterministic hashing backend for plumbing tests only
-- Transparent cosine retrieval with fixed `TOP_K` and a reproducible index cache
+- Task-scoped cosine/MMR retrieval with a reproducible index cache
 - Minimal LangGraph flow: retrieve, then answer
 - Together chat through LangChain's `ChatTogether`
 - Groq chat through LangChain's `ChatGroq`
@@ -33,7 +33,7 @@ The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-la
 - missing credentials for the configured hosted provider;
 - non-positive `TOP_K` values.
 
-Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The selected hosted candidate is OpenRouter `intfloat/multilingual-e5-large` (1024 dimensions) with `TOP_K=5`; its hosted evaluation report must be generated and reviewed before participant data collection. An older report for the `-instruct` model is not valid for this model.
+Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The selected hosted candidate is OpenRouter `intfloat/multilingual-e5-large` (1024 dimensions) with `TOP_K=3`, a relative similarity margin, per-source cap, and MMR diversity; its hosted evaluation report must be generated and reviewed before participant data collection.
 
 ## Project layout
 
@@ -101,7 +101,7 @@ The development configuration returns retrieved source IDs rather than pretendin
 ## Real retrieval experiment
 
 1. Copy `.env.evaluation.example` to `.env`.
-2. Replace the OpenRouter API-key placeholder. The hosted model, E5 prefixes, dimension, and fixed `TOP_K=5` are already configured.
+2. Replace the OpenRouter API-key placeholder. The hosted model, E5 prefixes, dimension, and bounded retrieval settings are already configured.
 3. Run:
 
 ```bash

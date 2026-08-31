@@ -9,6 +9,7 @@ from .prompts import SYSTEM_PROMPT, format_context
 
 class RagState(TypedDict, total=False):
     query: str
+    task_id: str
     history: list[dict[str, str]]
     retrieval_query: str
     retrieved: list
@@ -71,15 +72,12 @@ def build_graph(retriever, settings):
         )
 
     def retrieve(state: RagState) -> dict:
-        recent_user_turns = [
-            item.get("content", "")
-            for item in state.get("history", [])
-            if item.get("role") == "user"
-        ][-2:]
-        retrieval_query = "\n".join([*recent_user_turns, state["query"]])
+        # Conversation history remains available to the answering model, but it
+        # must not broaden retrieval into unrelated tasks or earlier questions.
+        retrieval_query = state["query"]
         return {
             "retrieval_query": retrieval_query,
-            "retrieved": retriever.search(retrieval_query),
+            "retrieved": retriever.search(retrieval_query, state["task_id"]),
         }
 
     def answer(state: RagState) -> dict:

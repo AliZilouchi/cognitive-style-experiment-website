@@ -11,9 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertEqual(len(documents), 18)
-        self.assertEqual([item.source_id for item in documents], [f"S{i:02d}" for i in range(1, 19)])
+        self.assertGreater(len(documents), 18)
+        self.assertEqual({item.source_id for item in documents}, {f"S{i:02d}" for i in range(1, 19)})
+        self.assertEqual(len({item.chunk_id for item in documents}), len(documents))
+        self.assertTrue(all(item.task_ids for item in documents))
         self.assertTrue(all("evaluation/" not in item.relative_path for item in documents))
+
+    def test_task_scope_matches_the_three_swts_tasks(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        by_source = {}
+        for item in documents:
+            by_source.setdefault(item.source_id, item.task_ids)
+        self.assertEqual(by_source["S01"], ("task_1", "task_2"))
+        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_1",) for i in range(2, 5)))
+        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_2",) for i in range(5, 11)))
+        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_3",) for i in range(11, 19)))
 
     def test_gold_set_contains_the_three_exact_swts_prompts(self):
         path = ROOT / "corpus" / "evaluation" / "retrieval_gold.jsonl"

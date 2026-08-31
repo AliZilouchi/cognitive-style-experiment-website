@@ -1,4 +1,13 @@
-# Docker-ready final release 0.3.0
+# Semantic retrieval release 0.5.0
+
+## Retrieval revision
+
+- 18 allowlisted sources split into 56 non-overlapping semantic chunks
+- Hard task filtering using the request's `task_id`
+- Current-question-only retrieval; chat history remains available only to generation
+- `TOP_K=3`, relative similarity threshold, two-chunk per-source cap, and MMR diversity
+- Chunk IDs and topics exposed in debug/API metadata for auditability
+- Regression tests prevent cross-task retrieval
 
 This release packages the controlled Persian Sepid Island RAG backend for local Docker deployment and later integration with the experiment website.
 
@@ -10,7 +19,7 @@ This release packages the controlled Persian Sepid Island RAG backend for local 
 - Embedding revision: `274baa43b0e13e37fafa6428dbc7938e62e5c439`
 - Query prefix: the evaluated E5 Persian-retrieval instruction
 - Document prefix: empty
-- Retrieval depth: `TOP_K=5`
+- Retrieval depth: `TOP_K=3`
 - Generator provider: Groq
 - Generator model: `qwen/qwen3.6-27b`
 - Prompt version: `sepid-fa-rag-v1`

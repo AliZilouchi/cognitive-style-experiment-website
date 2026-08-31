@@ -33,7 +33,10 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 | `EMBEDDING_DIMENSION` | `1024` |
 | `QUERY_PREFIX` | `query:` |
 | `DOCUMENT_PREFIX` | `passage:` |
-| `TOP_K` | `5` |
+| `TOP_K` | `3` |
+| `RETRIEVAL_SCORE_MARGIN` | `0.12` |
+| `MAX_CHUNKS_PER_SOURCE` | `2` |
+| `MMR_LAMBDA` | `0.75` |
 | `LLM_PROVIDER` | `openrouter` |
 | `LLM_MODEL` | `openai/gpt-4o-mini` |
 | `LLM_MAX_TOKENS` | `700` |

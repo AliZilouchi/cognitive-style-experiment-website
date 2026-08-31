@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate the configured embeddings with the intended fixed TOP_K."""
+"""Evaluate task-scoped semantic-chunk retrieval."""
 
 from __future__ import annotations
 
@@ -33,7 +33,14 @@ def main() -> int:
     documents = load_allowlisted_corpus(settings.corpus_root)
     embeddings = create_embeddings(settings)
     # Do not reuse a potentially stale persisted matrix during formal evaluation.
-    retriever = CorpusRetriever(documents, embeddings, settings.top_k)
+    retriever = CorpusRetriever(
+        documents,
+        embeddings,
+        settings.top_k,
+        score_margin=settings.retrieval_score_margin,
+        max_chunks_per_source=settings.max_chunks_per_source,
+        mmr_lambda=settings.mmr_lambda,
+    )
     gold_path = settings.corpus_root / "evaluation" / "retrieval_gold.jsonl"
     gold = [
         json.loads(line)
@@ -46,8 +53,9 @@ def main() -> int:
     reciprocal_ranks: list[float] = []
     rows = []
     for item in gold:
-        results = retriever.search(item["query"])
-        returned = [result.source_id for result in results]
+        task_id = {"receptive": "task_1", "critical": "task_2", "creative": "task_3"}[item["task"]]
+        results = retriever.search(item["query"], task_id)
+        returned = list(dict.fromkeys(result.source_id for result in results))
         relevant = set(item["relevant_source_ids"])
         found = relevant.intersection(returned)
         hits += bool(found)
@@ -64,6 +72,7 @@ def main() -> int:
                 "query": item["query"],
                 "relevant": sorted(relevant),
                 "returned": returned,
+                "returned_chunks": [result.chunk_id for result in results],
                 "recall_at_k": round(recalls[-1], 4),
                 "reciprocal_rank_at_k": round(reciprocal_ranks[-1], 4),
             }
@@ -84,6 +93,9 @@ def main() -> int:
             "query_prefix": settings.query_prefix,
             "document_prefix": settings.document_prefix,
             "top_k": settings.top_k,
+            "score_margin": settings.retrieval_score_margin,
+            "max_chunks_per_source": settings.max_chunks_per_source,
+            "mmr_lambda": settings.mmr_lambda,
             "corpus_id": "sepid_island_fa_v2",
         },
         "metrics": {
