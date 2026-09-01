@@ -30,12 +30,12 @@ const stimulusCache = new Map<string, Promise<void>>();
 
 const copy = {
   en: {
-    brand: "Cognitive Style Research",
+    brand: "Information Interaction Study",
     platform: "Participant Study Platform",
     admin: "Researcher view",
     freeChat: "Free chat",
-    welcome: "Welcome to a study about how people think.",
-    description: "This research explores different ways of thinking and how they shape decisions in a simulated work situation.",
+    welcome: "Welcome to a study about interacting with information.",
+    description: "This study includes a visual task followed by several simulated information-search activities.",
     invitation: "Enter your invitation code",
     invitationHelp: "Use the code provided by the study supervisor.",
     codePlaceholder: "e.g. 7KM4-PQ92",
@@ -43,7 +43,7 @@ const copy = {
     duration: "Please keep this window open. The full session may take up to two hours.",
     continue: "Continue",
     required: "Please enter your invitation code.",
-    steps: ["Introduction", "Demographics", "Cognitive test", "Think aloud", "SWTS tasks", "Final comparison", "Complete"],
+    steps: ["Introduction", "Demographics", "Visual task", "Think aloud", "Information tasks", "Final comparison", "Complete"],
     saved: "Progress saved",
     introTitle: "Before you begin",
     introBody: "Your supervisor will guide the session. Short connection interruptions will not erase responses already recorded on this device.",
@@ -54,8 +54,8 @@ const copy = {
     age: "Age range",
     education: "Highest education level",
     prefer: "Prefer not to say",
-    demoNext: "Continue to cognitive test",
-    testTitle: "Cognitive-style test",
+    demoNext: "Continue to visual task",
+    testTitle: "Visual task",
     testBody: "Before the research test is added, this short system check verifies response timing and durable trial recording on this device.",
     diagnosticNote: "System check only — this is not an E-CSA-WA item and does not affect eligibility.",
     timingPrompt: "When the symbol appears, choose whether it is round or angular as quickly as you can.",
@@ -67,18 +67,18 @@ const copy = {
     reactionTime: "Reaction time",
     repeatCheck: "Repeat check",
     testNext: "Continue to simulated work situation",
-    ecsaEyebrow: "E-CSA-WA · Research test",
-    ecsaReadyTitle: "Test engine ready",
-    ecsaReadyBody: "The runner supports four practice items with feedback and 80 scored trials without feedback, prescribed ordering, Yes/No keyboard responses, millisecond timing, interruption flags, and safe resumption.",
+    ecsaEyebrow: "Visual task",
+    ecsaReadyTitle: "The task is ready",
+    ecsaReadyBody: "You will first complete four practice items with feedback. The main items begin afterward and do not show correctness feedback.",
     materialPending: "Verified test materials still need to be imported",
     materialPendingBody: "The application will not generate or substitute figures. Attach the approved image package and answer key to activate the research test.",
-    materialCounts: "Expected: 4 practice · 40 wholistic · 40 analytic",
+    materialCounts: "84 visual items are ready",
     testInstructionsTitle: "How to respond",
-    testInstructionsBody: "For wholistic items, decide whether the two complex figures are identical. For analytic items, decide whether the simple figure is contained in the complex figure. Work accurately at a comfortable pace.",
+    testInstructionsBody: "In some items, decide whether two complex figures are identical. In others, decide whether the simple figure appears inside the complex figure. Work accurately at a comfortable pace.",
     keyboardHelp: "Press Y for Yes or N for No. You may also use the buttons.",
     startHelp: "When you are ready, use the button below. Y and N become active only after the figure appears.",
     beginEcsa: "Start first practice item",
-    resumeEcsa: "Continue E-CSA-WA",
+    resumeEcsa: "Continue visual task",
     readyTrial: "The next item is ready",
     showTrial: "Show item",
     yes: "Yes",
@@ -96,7 +96,7 @@ const copy = {
     wholisticLabel: "Wholistic",
     analyticLabel: "Analytic",
     testComplete: "Test complete",
-    testCompleteBody: "Your raw responses and timing data have been stored. The derived score is versioned separately and is not displayed to participants.",
+    testCompleteBody: "Your responses have been recorded. Continue to the next part when you are ready.",
     chatTitle: "Simulated work situation",
     chatBody: "Eligible participants will enter the versioned chatbot scenario here. The model, eligibility rule, and final-answer form remain configurable.",
     restart: "Return to entry",
@@ -104,12 +104,12 @@ const copy = {
     recovering: "Restoring session…",
   },
   fa: {
-    brand: "پژوهش سبک شناختی",
+    brand: "پژوهش تعامل با اطلاعات",
     platform: "سامانه اجرای مطالعه",
     admin: "نمای پژوهشگر",
     freeChat: "گفت‌وگوی آزاد",
-    welcome: "به پژوهشی درباره شیوه‌های تفکر خوش آمدید.",
-    description: "این پژوهش شیوه‌های متفاوت تفکر و اثر آن‌ها بر تصمیم‌گیری در یک موقعیت کاری شبیه‌سازی‌شده را بررسی می‌کند.",
+    welcome: "به مطالعه‌ای درباره تعامل با اطلاعات خوش آمدید.",
+    description: "این مطالعه شامل یک فعالیت تصویری و سپس چند فعالیت شبیه‌سازی‌شده جست‌وجوی اطلاعات است.",
     invitation: "کد دعوت خود را وارد کنید",
     invitationHelp: "از کدی استفاده کنید که ناظر مطالعه در اختیار شما گذاشته است.",
     codePlaceholder: "برای مثال 7KM4-PQ92",
@@ -117,7 +117,7 @@ const copy = {
     duration: "لطفاً این پنجره را باز نگه دارید. کل جلسه ممکن است تا دو ساعت طول بکشد.",
     continue: "ادامه",
     required: "لطفاً کد دعوت خود را وارد کنید.",
-    steps: ["مقدمه", "اطلاعات فردی", "آزمون شناختی", "بیان افکار", "وظایف SWTS", "مقایسه نهایی", "پایان"],
+    steps: ["مقدمه", "اطلاعات فردی", "فعالیت تصویری", "بیان افکار", "فعالیت‌های اطلاعاتی", "مقایسه نهایی", "پایان"],
     saved: "پیشرفت ذخیره شد",
     introTitle: "پیش از شروع",
     introBody: "ناظر، شما را در طول جلسه راهنمایی می‌کند. قطعی‌های کوتاه اینترنت پاسخ‌هایی را که در این دستگاه ثبت شده‌اند از بین نمی‌برد.",
@@ -128,8 +128,8 @@ const copy = {
     age: "بازه سنی",
     education: "بالاترین مقطع تحصیلی",
     prefer: "ترجیح می‌دهم پاسخ ندهم",
-    demoNext: "ادامه به آزمون شناختی",
-    testTitle: "آزمون سبک شناختی",
+    demoNext: "ادامه به فعالیت تصویری",
+    testTitle: "فعالیت تصویری",
     testBody: "پیش از افزودن آزمون پژوهشی، این بررسی کوتاه صحت زمان‌سنجی پاسخ و ثبت پایدار داده را روی این دستگاه آزمایش می‌کند.",
     diagnosticNote: "این فقط بررسی سامانه است؛ بخشی از E-CSA-WA نیست و بر واجد شرایط بودن اثر ندارد.",
     timingPrompt: "پس از نمایش نماد، در سریع‌ترین زمان مشخص کنید گرد است یا زاویه‌دار.",
@@ -141,18 +141,18 @@ const copy = {
     reactionTime: "زمان واکنش",
     repeatCheck: "تکرار بررسی",
     testNext: "ادامه به موقعیت کاری شبیه‌سازی‌شده",
-    ecsaEyebrow: "E-CSA-WA · آزمون پژوهشی",
-    ecsaReadyTitle: "موتور آزمون آماده است",
-    ecsaReadyBody: "سامانه از چهار سؤال تمرینی همراه بازخورد و ۸۰ سؤال اصلی بدون بازخورد، ترتیب ازپیش‌تعیین‌شده، پاسخ بله/خیر با صفحه‌کلید، زمان‌سنجی میلی‌ثانیه‌ای، ثبت وقفه‌ها و ادامه امن آزمون پشتیبانی می‌کند.",
+    ecsaEyebrow: "فعالیت تصویری",
+    ecsaReadyTitle: "فعالیت آماده است",
+    ecsaReadyBody: "ابتدا چهار سؤال تمرینی همراه با بازخورد خواهید داشت. پس از آن سؤال‌های اصلی آغاز می‌شوند و بازخورد درست یا نادرست نمایش داده نمی‌شود.",
     materialPending: "محتوای تأییدشده آزمون هنوز باید وارد شود",
     materialPendingBody: "سامانه هیچ شکل جایگزین یا ساختگی تولید نمی‌کند. برای فعال‌سازی آزمون، بسته تصاویر و کلید پاسخ تأییدشده را پیوست کنید.",
-    materialCounts: "مورد انتظار: ۴ تمرینی · ۴۰ کل‌نگر · ۴۰ تحلیلی",
+    materialCounts: "۸۴ سؤال تصویری آماده است",
     testInstructionsTitle: "روش پاسخ‌دادن",
-    testInstructionsBody: "در سؤال‌های کل‌نگر مشخص کنید دو شکل پیچیده یکسان هستند یا خیر. در سؤال‌های تحلیلی مشخص کنید شکل ساده در شکل پیچیده وجود دارد یا خیر. با دقت و با سرعت راحت خود پاسخ دهید.",
+    testInstructionsBody: "در بعضی سؤال‌ها مشخص کنید دو شکل پیچیده یکسان هستند یا خیر. در سؤال‌های دیگر مشخص کنید شکل ساده درون شکل پیچیده وجود دارد یا خیر. با دقت و با سرعت راحت خود پاسخ دهید.",
     keyboardHelp: "برای بله کلید Y و برای خیر کلید N را بزنید. دکمه‌های صفحه نیز قابل استفاده‌اند.",
     startHelp: "وقتی آماده بودید دکمه زیر را بزنید. کلیدهای Y و N فقط پس از نمایش شکل فعال می‌شوند.",
     beginEcsa: "شروع اولین سؤال تمرینی",
-    resumeEcsa: "ادامه آزمون E-CSA-WA",
+    resumeEcsa: "ادامه فعالیت تصویری",
     readyTrial: "سؤال بعدی آماده است",
     showTrial: "نمایش سؤال",
     yes: "بله",
@@ -170,7 +170,7 @@ const copy = {
     wholisticLabel: "کل‌نگر",
     analyticLabel: "تحلیلی",
     testComplete: "آزمون کامل شد",
-    testCompleteBody: "پاسخ‌های خام و داده‌های زمانی شما ذخیره شدند. امتیاز محاسبه‌شده به‌صورت جداگانه نسخه‌بندی می‌شود و به شرکت‌کننده نمایش داده نمی‌شود.",
+    testCompleteBody: "پاسخ‌های شما ثبت شدند. هر زمان آماده بودید به بخش بعدی ادامه دهید.",
     chatTitle: "موقعیت کاری شبیه‌سازی‌شده",
     chatBody: "شرکت‌کنندگان واجد شرایط در این بخش وارد سناریوی نسخه‌بندی‌شده گفت‌وگو می‌شوند. مدل، شرط ورود و فرم پاسخ نهایی قابل تنظیم باقی می‌مانند.",
     restart: "بازگشت به ورودی",
@@ -703,11 +703,7 @@ export default function Home() {
                 <div className="engine-status">
                   <div><span className={materialStatus.valid ? "status-dot ready" : "status-dot pending"} /><strong>{t.ecsaReadyTitle}</strong></div>
                   <p>{t.ecsaReadyBody}</p>
-                  <ul>
-                    <li>{t.materialCounts}</li>
-                    <li>{language === "fa" ? `وضعیت فعلی: ${materialStatus.total} از ۸۴ مورد` : `Current package: ${materialStatus.total} of 84 items`}</li>
-                    <li>{language === "fa" ? "امتیاز: میانه زمان کل‌نگر ÷ میانه زمان تحلیلی" : "Score: median wholistic RT ÷ median analytic RT"}</li>
-                  </ul>
+                  <ul><li>{t.materialCounts}</li></ul>
                 </div>
                 {!materialStatus.valid ? <div className="material-warning" role="status"><strong>{t.materialPending}</strong><p>{t.materialPendingBody}</p></div> :
                   <button className="primary" onClick={() => setEcsaScreen("instructions")}>{ecsaResponses.length ? t.resumeEcsa : t.beginEcsa}<Arrow rtl={rtl} /></button>}
@@ -726,12 +722,12 @@ export default function Home() {
               </div>}
               {ecsaScreen === "ready" && currentEcsaTrial && <div className="ecsa-ready"><span>{currentEcsaTrial.practice ? t.practiceLabel : t.trialLabel}</span><strong>{ecsaIndex + 1} / {ECSA_TRIALS.length}</strong><h3>{stimulusStatus === "error" ? t.imageLoadError : stimulusStatus === "buffering" ? t.preparingItem : t.readyTrial}</h3>{stimulusStatus === "error" ? <button className="secondary" onClick={() => void prepareCurrentTrial()}>{t.retryImage}</button> : <button className="primary" disabled={stimulusStatus !== "ready"} onClick={showEcsaTrial}>{t.showTrial}</button>}</div>}
               {ecsaScreen === "trial" && currentEcsaTrial && <div className="ecsa-trial" aria-live="polite">
-                <div className="trial-meta"><span>{currentEcsaTrial.practice ? t.practiceLabel : t.trialLabel}</span><span>{currentEcsaTrial.subtest === "wholistic" ? t.wholisticLabel : t.analyticLabel}</span><span>{ecsaIndex + 1} / {ECSA_TRIALS.length}</span></div>
-                <figure className={`stimulus-frame ${currentEcsaTrial.subtest} ${stimulusStatus === "visible" ? "is-visible" : "is-buffering"}`}><NextImage key={currentEcsaTrial.asset} src={currentEcsaTrial.asset} alt={currentEcsaTrial.subtest === "wholistic" ? "Wholistic comparison item" : "Analytic containment item"} width={900} height={450} unoptimized draggable={false} priority onLoad={revealStimulus} onError={() => setStimulusStatus("error")} />{stimulusStatus !== "visible" && <span className="stimulus-loader" role="status">{stimulusStatus === "error" ? t.imageLoadError : t.preparingItem}</span>}</figure>
+                <div className="trial-meta"><span>{currentEcsaTrial.practice ? t.practiceLabel : t.trialLabel}</span><span>{ecsaIndex + 1} / {ECSA_TRIALS.length}</span></div>
+                <figure className={`stimulus-frame ${currentEcsaTrial.subtest} ${stimulusStatus === "visible" ? "is-visible" : "is-buffering"}`}><NextImage key={currentEcsaTrial.asset} src={currentEcsaTrial.asset} alt={language === "fa" ? "سؤال تصویری" : "Visual test item"} width={900} height={450} unoptimized draggable={false} priority onLoad={revealStimulus} onError={() => setStimulusStatus("error")} />{stimulusStatus !== "visible" && <span className="stimulus-loader" role="status">{stimulusStatus === "error" ? t.imageLoadError : t.preparingItem}</span>}</figure>
                 <div className="response-grid"><button disabled={ecsaTrialStart <= 0} onPointerDown={() => answerEcsa("yes", "pointer")}><kbd>Y</kbd>{t.yes}</button><button disabled={ecsaTrialStart <= 0} onPointerDown={() => answerEcsa("no", "pointer")}><kbd>N</kbd>{t.no}</button></div>
               </div>}
               {ecsaScreen === "feedback" && currentEcsaTrial?.practice && <div className={`ecsa-feedback ${ecsaFeedback ? "correct" : "incorrect"}`} aria-live="assertive">
-                <figure className="stimulus-frame feedback-stimulus"><NextImage src={currentEcsaTrial.asset} alt={currentEcsaTrial.subtest === "wholistic" ? "Wholistic comparison item" : "Analytic containment item"} width={900} height={450} unoptimized draggable={false} /></figure>
+                <figure className="stimulus-frame feedback-stimulus"><NextImage src={currentEcsaTrial.asset} alt={language === "fa" ? "سؤال تمرینی تصویری" : "Visual practice item"} width={900} height={450} unoptimized draggable={false} /></figure>
                 <div className="feedback-summary"><span className="feedback-mark">{ecsaFeedback ? "✓" : "×"}</span><div><h3>{ecsaFeedback ? t.correct : t.incorrect}</h3><p>{t.yourAnswer}: <strong>{ecsaSelectedAnswer === "yes" ? t.yes : t.no}</strong> · {t.correctAnswer}: <strong>{currentEcsaTrial.correctAnswer === "yes" ? t.yes : t.no}</strong></p></div></div>
                 <button className="primary" onClick={() => advanceEcsa()}>{t.nextItem}<Arrow rtl={rtl} /></button>
               </div>}

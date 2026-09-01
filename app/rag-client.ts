@@ -11,6 +11,8 @@ export type RagHistoryItem = {
 
 export type RagSource = {
   source_id: string;
+  chunk_id?: string;
+  topic?: string;
   relative_path: string;
   rank: number;
   score: number;
@@ -30,7 +32,9 @@ export type RagChatResponse = {
   answer: string;
   sources: RagSource[];
   retrieval: {
-    top_k: number;
+    requested_top_k: number;
+    returned_chunks: number;
+    task_id: SwtsTaskId;
     embedding_model: string;
     query: string;
   };
@@ -41,6 +45,7 @@ export type RagHealthResponse = {
   status: string;
   environment: string;
   source_count: number;
+  chunk_count?: number;
   top_k: number;
   embedding_model: string;
   llm_provider: string;
@@ -84,7 +89,7 @@ async function fetchWithTimeout(
 
 export async function checkRagHealth(): Promise<RagHealthResponse> {
   // A new serverless backend instance may need one hosted call to rebuild the
-  // tiny 18-document in-memory index before it can answer its first request.
+  // semantic-chunk in-memory index before it can answer its first request.
   const response = await fetchWithTimeout(`${RAG_API_BASE}/health`, { method: "GET" }, 60_000);
   if (!response.ok) throw new RagRequestError("not_ready", response.status);
   const result = (await response.json()) as RagHealthResponse;
@@ -92,7 +97,9 @@ export async function checkRagHealth(): Promise<RagHealthResponse> {
     result.status !== "ok" ||
     result.environment !== "experiment" ||
     result.source_count !== 18 ||
-    result.top_k !== 3
+    !Number.isInteger(result.top_k) ||
+    result.top_k < 1 ||
+    result.top_k > 10
   ) {
     throw new RagRequestError("invalid_health");
   }
