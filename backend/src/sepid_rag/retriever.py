@@ -17,8 +17,12 @@ from .normalization import normalize_persian
 @dataclass(frozen=True)
 class SearchResult:
     source_id: str
+    source_ids: tuple[str, ...]
     chunk_id: str
+    node_type: str
     topic: str
+    entities: tuple[str, ...]
+    parent_ids: tuple[str, ...]
     relative_path: str
     text: str
     score: float
@@ -79,10 +83,13 @@ class CorpusRetriever:
 
     @property
     def source_count(self) -> int:
-        return len({document.source_id for document in self.documents})
+        return len(
+            {source_id for document in self.documents for source_id in document.source_ids}
+        )
 
     def search(self, original_query: str, task_id: str | None = None) -> list[SearchResult]:
         query = normalize_persian(original_query)
+        query_tokens = set(query.split())
         vector = np.asarray(self.embeddings.embed_query(query), dtype=np.float32)
         scores = self._matrix @ vector
         eligible = [
@@ -99,8 +106,29 @@ class CorpusRetriever:
             for index in eligible
             if float(scores[index]) >= best_score - self.score_margin
         ]
-        selected: list[int] = []
+        def coverage_matches(index: int) -> int:
+            matches = 0
+            for raw_term in self.documents[index].coverage_terms:
+                term = normalize_persian(raw_term)
+                if (len(term) >= 4 and term in query) or term in query_tokens:
+                    matches += 1
+            return matches
+
+        anchors = [index for index in eligible if coverage_matches(index)]
+        comparison_anchors = [
+            index for index in anchors if self.documents[index].node_type == "comparison"
+        ]
+        if len(comparison_anchors) >= 2:
+            anchors = [
+                index for index in anchors if self.documents[index].node_type != "index"
+            ]
+        anchors.sort(key=lambda index: (coverage_matches(index), float(scores[index])), reverse=True)
+        selected: list[int] = anchors[: self.top_k]
         source_counts: dict[str, int] = {}
+        for index in selected:
+            source_id = self.documents[index].source_id
+            source_counts[source_id] = source_counts.get(source_id, 0) + 1
+        candidates = [index for index in candidates if index not in selected]
 
         while candidates and len(selected) < self.top_k:
             allowed = [
@@ -133,8 +161,12 @@ class CorpusRetriever:
         return [
             SearchResult(
                 source_id=self.documents[index].source_id,
+                source_ids=self.documents[index].source_ids,
                 chunk_id=self.documents[index].chunk_id,
+                node_type=self.documents[index].node_type,
                 topic=self.documents[index].topic,
+                entities=self.documents[index].entities,
+                parent_ids=self.documents[index].parent_ids,
                 relative_path=self.documents[index].relative_path,
                 text=self.documents[index].text,
                 score=float(scores[index]),

@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="0.6.0", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(
@@ -117,8 +117,12 @@ def debug_retrieve(q: str, request: Request, task_id: str | None = None) -> dict
         "results": [
             {
                 "source_id": item.source_id,
+                "source_ids": list(item.source_ids),
                 "chunk_id": item.chunk_id,
+                "node_type": item.node_type,
                 "topic": item.topic,
+                "entities": list(item.entities),
+                "parent_ids": list(item.parent_ids),
                 "rank": item.rank,
                 "score": round(item.score, 6),
                 "relative_path": item.relative_path,

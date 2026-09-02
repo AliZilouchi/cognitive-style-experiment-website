@@ -11,21 +11,45 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertGreater(len(documents), 18)
-        self.assertEqual({item.source_id for item in documents}, {f"S{i:02d}" for i in range(1, 19)})
+        self.assertEqual(len(documents), 54)
+        self.assertEqual(
+            {source_id for item in documents for source_id in item.source_ids},
+            {f"S{i:02d}" for i in range(1, 19)},
+        )
         self.assertEqual(len({item.chunk_id for item in documents}), len(documents))
         self.assertTrue(all(item.task_ids for item in documents))
+        self.assertTrue(all(item.node_type in {"index", "fact", "comparison"} for item in documents))
         self.assertTrue(all("evaluation/" not in item.relative_path for item in documents))
 
     def test_task_scope_matches_the_three_swts_tasks(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        by_source = {}
-        for item in documents:
-            by_source.setdefault(item.source_id, item.task_ids)
-        self.assertEqual(by_source["S01"], ("task_1", "task_2"))
-        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_1",) for i in range(2, 5)))
-        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_2",) for i in range(5, 11)))
-        self.assertTrue(all(by_source[f"S{i:02d}"] == ("task_3",) for i in range(11, 19)))
+        by_id = {item.chunk_id: item for item in documents}
+        self.assertEqual(by_id["SHARED-OVERVIEW-01"].task_ids, ("task_1", "task_2"))
+        self.assertEqual(by_id["T1-INDEX-ACCOMMODATION"].task_ids, ("task_1",))
+        self.assertEqual(by_id["T2-COMPARE-WEATHER"].task_ids, ("task_2",))
+        self.assertEqual(by_id["T3-INDEX-SITUATIONS"].task_ids, ("task_3",))
+
+    def test_accommodation_index_names_all_four_options(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        index = next(item for item in documents if item.chunk_id == "T1-INDEX-ACCOMMODATION")
+        self.assertEqual(
+            set(index.entities),
+            {"هتل صدف", "مهمان‌خانه موج", "کلبه‌های نارون", "اردوگاه چشمه"},
+        )
+
+    def test_task_two_has_cross_period_comparisons(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        chunk_ids = {item.chunk_id for item in documents}
+        self.assertTrue(
+            {
+                "T2-COMPARE-WEATHER",
+                "T2-COMPARE-COST",
+                "T2-COMPARE-ATTRACTIONS-ALL",
+                "T2-COMPARE-ATTRACTIONS-WINTER-SPRING",
+                "T2-COMPARE-ATTRACTIONS-SPRING-SUMMER",
+                "T2-COMPARE-ATTRACTIONS-AUTUMN",
+            }.issubset(chunk_ids)
+        )
 
     def test_gold_set_contains_the_three_exact_swts_prompts(self):
         path = ROOT / "corpus" / "evaluation" / "retrieval_gold.jsonl"

@@ -1,0 +1,460 @@
+{
+  "corpus_id": "sepid_island_fa_v2_curated_v1",
+  "source_corpus_id": "sepid_island_fa_v2",
+  "chunk_count": 54,
+  "chunks": [
+    {
+      "chunk_id": "SHARED-OVERVIEW-01",
+      "task_ids": ["task_1", "task_2"],
+      "node_type": "index",
+      "topic": "island_overview",
+      "entities": ["جزیره سپید", "بندر سپید"],
+      "parent_ids": [],
+      "source_ids": ["S01"],
+      "text": "جزیره سپید مقصدی کوچک و خیالی در آب‌های گرم است. بندر سپید در شمال جزیره و محل تمرکز بیشتر خانه‌ها، فروشگاه‌ها و خدمات عمومی است. بخش میانی باغ‌ها و بلندی‌های کم‌ارتفاع دارد و جنوب جزیره سبزتر و مرطوب‌تر است."
+    },
+
+    {
+      "chunk_id": "T1-INDEX-ACCOMMODATION",
+      "task_ids": ["task_1"],
+      "node_type": "index",
+      "topic": "accommodation_options",
+      "coverage_terms": ["گزینه اقامت", "گزینه‌های اقامت", "اقامتگاه", "محل اقامت", "نام اقامت"],
+      "entities": ["هتل صدف", "مهمان‌خانه موج", "کلبه‌های نارون", "اردوگاه چشمه"],
+      "parent_ids": [],
+      "source_ids": ["S02", "S03"],
+      "text": "چهار گزینه اقامت در جزیره سپید وجود دارد: هتل صدف، مهمان‌خانه موج، کلبه‌های نارون و اردوگاه چشمه."
+    },
+    {
+      "chunk_id": "T1-FACT-HOTEL-SADAF",
+      "task_ids": ["task_1"],
+      "node_type": "fact",
+      "topic": "accommodation_profile",
+      "entities": ["هتل صدف"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S02", "S04"],
+      "text": "هتل صدف نزدیک میدان اصلی بندر است. واحد خانوادگی آن دو اتاق خواب و یک فضای نشیمن دارد، حداکثر شش نفر ظرفیت دارد و قیمت پایه کل واحد شبی ۲۴۰ یورو با صبحانه ساده است. رزرو حداقل دو شب و بیعانه ۲۰ درصد است. هنگام ورود، مدرک شناسایی یک عضو بزرگسال کافی است و مجوز دیگری لازم نیست."
+    },
+    {
+      "chunk_id": "T1-FACT-GUESTHOUSE-MOJ",
+      "task_ids": ["task_1"],
+      "node_type": "fact",
+      "topic": "accommodation_profile",
+      "entities": ["مهمان‌خانه موج"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S02", "S04"],
+      "text": "مهمان‌خانه موج در کوچه‌ای آرام و حدود ده دقیقه پیاده از بازار مرکزی است. آپارتمان آن سه اتاق کوچک، آشپزخانه و حمام مشترک دارد، شش نفر ظرفیت دارد و قیمت پایه کل واحد شبی ۱۵۰ یورو است. حداقل مدت اقامت ندارد، بیعانه ۳۰ درصد است و مجوز جداگانه لازم نیست."
+    },
+    {
+      "chunk_id": "T1-FACT-NARENJ-CABINS",
+      "task_ids": ["task_1"],
+      "node_type": "fact",
+      "topic": "accommodation_profile",
+      "entities": ["کلبه‌های نارون"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S03", "S04"],
+      "text": "کلبه‌های نارون در باغ‌های بخش میانی جزیره‌اند. هر کلبه دو نفر ظرفیت، حمام مستقل و فضای کوچک گرم‌کردن غذا دارد و قیمت پایه آن شبی ۸۵ یورو است؛ گروه شش‌نفره به سه کلبه نیاز دارد. پیش از ورود باید مجوز رایگان اقامت در باغ از دفتر گردشگری بندر دریافت شود و روشن‌کردن آتش در فضای باز ممنوع است."
+    },
+    {
+      "chunk_id": "T1-FACT-CHESHMEH-CAMP",
+      "task_ids": ["task_1"],
+      "node_type": "fact",
+      "topic": "accommodation_profile",
+      "entities": ["اردوگاه چشمه"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S03", "S04"],
+      "text": "اردوگاه چشمه در حاشیه منطقه حفاظت‌شده جنوبی است. هر محل چادر سه نفر ظرفیت و قیمت پایه شبی ۴۵ یورو دارد؛ گروه شش‌نفره به دو محل نیاز دارد. چادر، کیسه‌خواب و وسایل پخت‌وپز در هزینه نیست. مجوز اردو برای کل گروه و کل اقامت ۱۰ یورو است. اجاق پایه‌دار مجاز و آتش مستقیم روی زمین ممنوع است."
+    },
+    {
+      "chunk_id": "T1-COMPARE-COST-CAPACITY",
+      "task_ids": ["task_1"],
+      "node_type": "comparison",
+      "topic": "accommodation_cost_capacity",
+      "entities": ["هتل صدف", "مهمان‌خانه موج", "کلبه‌های نارون", "اردوگاه چشمه"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S02", "S03"],
+      "text": "مقایسه قیمت پایه و ظرفیت: هتل صدف، کل واحد شبی ۲۴۰ یورو و ظرفیت شش نفر؛ مهمان‌خانه موج، کل واحد شبی ۱۵۰ یورو و ظرفیت شش نفر؛ کلبه نارون، هر کلبه شبی ۸۵ یورو و ظرفیت دو نفر؛ اردوگاه چشمه، هر محل چادر شبی ۴۵ یورو و ظرفیت سه نفر."
+    },
+    {
+      "chunk_id": "T1-COMPARE-RULES",
+      "task_ids": ["task_1"],
+      "node_type": "comparison",
+      "topic": "accommodation_rules",
+      "entities": ["هتل صدف", "مهمان‌خانه موج", "کلبه‌های نارون", "اردوگاه چشمه"],
+      "parent_ids": ["T1-INDEX-ACCOMMODATION"],
+      "source_ids": ["S04"],
+      "text": "مقایسه مقررات: هتل صدف حداقل دو شب، بیعانه ۲۰ درصد و مدرک شناسایی یک بزرگسال؛ مهمان‌خانه موج بدون حداقل اقامت، بیعانه ۳۰ درصد و بدون مجوز جداگانه؛ کلبه‌های نارون با مجوز رایگان باغ و ممنوعیت آتش در فضای باز؛ اردوگاه چشمه با مجوز ۱۰ یورویی کل گروه، اجاق پایه‌دار مجاز و آتش مستقیم ممنوع."
+    },
+
+    {
+      "chunk_id": "T2-INDEX-PERIODS",
+      "task_ids": ["task_2"],
+      "node_type": "index",
+      "topic": "travel_periods",
+      "coverage_terms": ["سه بازه", "بازه سفر", "بازه‌های سفر", "تقویم سفر", "نام بازه"],
+      "entities": ["دی تا فروردین", "اردیبهشت تا مرداد", "شهریور تا آذر"],
+      "parent_ids": [],
+      "source_ids": ["S01"],
+      "text": "تقویم گردشگری جزیره سه بازه دارد: دی تا فروردین، اردیبهشت تا مرداد و شهریور تا آذر. این سه بازه همه دوازده ماه را بدون فاصله پوشش می‌دهند."
+    },
+    {
+      "chunk_id": "T2-COMPARE-WEATHER",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "travel_weather",
+      "coverage_terms": ["هوا", "هوای", "آب و هوا", "آب‌وهوا", "دما", "باران", "باد", "شرایط جوی"],
+      "entities": ["دی تا فروردین", "اردیبهشت تا مرداد", "شهریور تا آذر"],
+      "parent_ids": ["T2-INDEX-PERIODS"],
+      "source_ids": ["S05"],
+      "text": "مقایسه هوا: دی تا فروردین ۲۲ تا ۲۶ درجه، کم‌باران و مناسب گشت زمینی است اما باد ساحلی در حدود دو روز از پنج روز شدید می‌شود. اردیبهشت تا مرداد ۲۹ تا ۳۳ درجه، کم‌باران و کم‌باد و پایدارتر است اما نیمه روز گرم می‌شود. شهریور تا آذر ۲۴ تا ۲۸ درجه و سبزتر است؛ باران کوتاه حدود چهار روز از هفت روز رخ می‌دهد و مسیرهای خاکی یا سنگی ممکن است خیس شوند."
+    },
+    {
+      "chunk_id": "T2-FACT-WEATHER-WINTER-SPRING",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_weather",
+      "entities": ["دی تا فروردین"],
+      "parent_ids": ["T2-COMPARE-WEATHER"],
+      "source_ids": ["S05"],
+      "text": "دی تا فروردین: دمای روز ۲۲ تا ۲۶ درجه و بارندگی کم است. هوا برای گشت زمینی راحت است، اما باد ساحلی در حدود دو روز از هر پنج روز شدید می‌شود و ممکن است قایق یا حضور طولانی کنار آب را مختل کند."
+    },
+    {
+      "chunk_id": "T2-FACT-WEATHER-SPRING-SUMMER",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_weather",
+      "entities": ["اردیبهشت تا مرداد"],
+      "parent_ids": ["T2-COMPARE-WEATHER"],
+      "source_ids": ["S05"],
+      "text": "اردیبهشت تا مرداد: دمای روز ۲۹ تا ۳۳ درجه است. باران و باد شدید کم و هوا پایدارتر از دو بازه دیگر است. نیمه روز می‌تواند خسته‌کننده باشد، ولی صبح و عصر برای فعالیت بیرونی مناسب‌ترند."
+    },
+    {
+      "chunk_id": "T2-FACT-WEATHER-AUTUMN",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_weather",
+      "entities": ["شهریور تا آذر"],
+      "parent_ids": ["T2-COMPARE-WEATHER"],
+      "source_ids": ["S05"],
+      "text": "شهریور تا آذر: دمای روز ۲۴ تا ۲۸ درجه است. حدود چهار روز از هر هفت روز باران کوتاه می‌بارد و طبیعت سبزتر است، اما مسیرهای خاکی یا سنگی ممکن است خیس شوند. باران طولانی معمولاً بیش از یک روز در هفته نیست."
+    },
+    {
+      "chunk_id": "T2-COMPARE-COST",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "travel_cost",
+      "coverage_terms": ["هزینه", "قیمت", "ارزان", "گران", "اقتصادی"],
+      "entities": ["دی تا فروردین", "اردیبهشت تا مرداد", "شهریور تا آذر"],
+      "parent_ids": ["T2-INDEX-PERIODS"],
+      "source_ids": ["S06"],
+      "text": "مقایسه هزینه: دی تا فروردین خدمات گردشگری حدود ۱۰ درصد کمتر از میانگین سالانه است؛ اردیبهشت تا مرداد حدود ۱۰ درصد بالاتر از میانگین است؛ شهریور تا آذر نزدیک میانگین است. هزینه رفت‌وآمد عمومی در هر سه بازه تقریباً ثابت است و تفاوت اصلی به اقامت و ورودی تجربه‌های گردشگری مربوط می‌شود."
+    },
+    {
+      "chunk_id": "T2-FACT-COST-WINTER-SPRING",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_cost",
+      "entities": ["دی تا فروردین"],
+      "parent_ids": ["T2-COMPARE-COST"],
+      "source_ids": ["S06"],
+      "text": "دی تا فروردین: هزینه معمول خدمات گردشگری حدود ۱۰ درصد کمتر از میانگین سالانه است و برای بعضی اقامتگاه‌ها تخفیف کوتاه‌مدت پیدا می‌شود."
+    },
+    {
+      "chunk_id": "T2-FACT-COST-SPRING-SUMMER",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_cost",
+      "entities": ["اردیبهشت تا مرداد"],
+      "parent_ids": ["T2-COMPARE-COST"],
+      "source_ids": ["S06"],
+      "text": "اردیبهشت تا مرداد: به‌دلیل تقاضای بیشتر برای تجربه‌های ساحلی، هزینه معمول خدمات گردشگری حدود ۱۰ درصد بالاتر از میانگین سالانه است."
+    },
+    {
+      "chunk_id": "T2-FACT-COST-AUTUMN",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "travel_cost",
+      "entities": ["شهریور تا آذر"],
+      "parent_ids": ["T2-COMPARE-COST"],
+      "source_ids": ["S06"],
+      "text": "شهریور تا آذر: هزینه‌ها نزدیک میانگین سالانه است. قیمت خدمات اصلی معمولاً ثابت می‌ماند و گاهی برای گروه‌های کوچک تخفیف ورودی وجود دارد، اما تضمین‌شده نیست."
+    },
+    {
+      "chunk_id": "T2-INDEX-ATTRACTIONS",
+      "task_ids": ["task_2"],
+      "node_type": "index",
+      "topic": "attraction_availability",
+      "entities": ["موزه فانوس", "باغ سنگ و ابر", "تالار خوراک بندر", "ساحل روشن", "خلیج آینه", "برج دیدبانی سپید", "مسیر جنگل خاموش", "تالاب نیلی", "آبشار باریک"],
+      "parent_ids": ["T2-INDEX-PERIODS"],
+      "source_ids": ["S07", "S08", "S09", "S10"],
+      "text": "دیدنی‌ها و تجربه‌های معرفی‌شده جزیره عبارت‌اند از: موزه فانوس، باغ سنگ و ابر، تالار خوراک بندر، ساحل روشن، خلیج آینه، برج دیدبانی سپید، مسیر جنگل خاموش، تالاب نیلی و آبشار باریک."
+    },
+    {
+      "chunk_id": "T2-COMPARE-ATTRACTIONS-ALL",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "attraction_availability",
+      "coverage_terms": ["جاذبه", "دیدنی", "مکان گردشگری", "فعال", "باز", "بسته", "دسترسی"],
+      "entities": ["دی تا فروردین", "اردیبهشت تا مرداد", "شهریور تا آذر"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S07", "S08", "S09", "S10"],
+      "text": "خلاصه دسترسی دیدنی‌ها در سه بازه: مکان‌های تمام‌سال شامل موزه فانوس، باغ سنگ و ابر و تالار خوراک بندرند. دی تا فروردین ساحل روشن، برج دیدبانی و مسیر جنگل خاموش نیز فعال‌اند. اردیبهشت تا مرداد ساحل روشن، خلیج آینه و تالاب نیلی نیز فعال‌اند. شهریور تا آذر خلیج آینه، برج دیدبانی و آبشار باریک نیز فعال‌اند."
+    },
+    {
+      "chunk_id": "T2-COMPARE-ATTRACTIONS-WINTER-SPRING",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "attraction_availability",
+      "entities": ["دی تا فروردین"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S07", "S08", "S09", "S10"],
+      "text": "دی تا فروردین: موزه فانوس، باغ سنگ و ابر و تالار خوراک بندر فعال‌اند. ساحل روشن فعال است ولی باد ممکن است شنا را محدود کند. برج دیدبانی و مسیر جنگل خاموش فعال‌اند. خلیج آینه، تالاب نیلی و آبشار باریک فعال نیستند؛ آبشار کم‌آب است."
+    },
+    {
+      "chunk_id": "T2-COMPARE-ATTRACTIONS-SPRING-SUMMER",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "attraction_availability",
+      "entities": ["اردیبهشت تا مرداد"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S07", "S08", "S09", "S10"],
+      "text": "اردیبهشت تا مرداد: موزه فانوس، باغ سنگ و ابر، تالار خوراک بندر، ساحل روشن، خلیج آینه و تالاب نیلی فعال‌اند. برنامه قایق خلیج آینه منظم‌تر است. برج دیدبانی، مسیر جنگل خاموش و آبشار باریک بسته‌اند."
+    },
+    {
+      "chunk_id": "T2-COMPARE-ATTRACTIONS-AUTUMN",
+      "task_ids": ["task_2"],
+      "node_type": "comparison",
+      "topic": "attraction_availability",
+      "entities": ["شهریور تا آذر"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S07", "S08", "S09", "S10"],
+      "text": "شهریور تا آذر: موزه فانوس، باغ سنگ و ابر، تالار خوراک بندر، خلیج آینه، برج دیدبانی و آبشار باریک فعال‌اند. حرکت قایق خلیج آینه هر صبح پس از بررسی دریا اعلام می‌شود و آبشار با راهنمای محلی بازدید می‌شود. ساحل روشن، مسیر جنگل خاموش و تالاب نیلی فعال نیستند."
+    },
+    {
+      "chunk_id": "T2-FACT-ATTRACTIONS-YEAR-ROUND",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["موزه فانوس", "باغ سنگ و ابر", "تالار خوراک بندر"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S07"],
+      "text": "سه مکان در هر سه بازه فعال‌اند: موزه فانوس با بخش‌های داخلی و بازدید حدود یک‌ساعت‌ونیم؛ باغ سنگ و ابر با مسیر گیاهان بومی و سنگ‌های روشن؛ و تالار خوراک بندر با غرفه‌های کوچک غذا که خوراک‌های ویژه‌شان در طول سال تغییر می‌کند."
+    },
+    {
+      "chunk_id": "T2-FACT-BRIGHT-BEACH",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["ساحل روشن"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S08"],
+      "text": "ساحل روشن برای قدم‌زدن، تماشای آب و شنا شناخته می‌شود. از دی تا فروردین و اردیبهشت تا مرداد فعال است؛ در بازه نخست باد ممکن است شنا را محدود کند. از شهریور تا آذر به‌دلیل جریان‌های قوی‌تر بسته است."
+    },
+    {
+      "chunk_id": "T2-FACT-MIRROR-BAY",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["خلیج آینه"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S08"],
+      "text": "خلیج آینه با قایق کوچک دیده می‌شود. برنامه قایق از اردیبهشت تا مرداد منظم‌تر است و از شهریور تا آذر نیز پس از بررسی روزانه دریا فعال می‌ماند. از دی تا فروردین باد ساحلی برنامه را متوقف می‌کند."
+    },
+    {
+      "chunk_id": "T2-FACT-WATCHTOWER",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["برج دیدبانی سپید"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S09"],
+      "text": "برج دیدبانی سپید چشم‌انداز بندر و باغ‌ها را نشان می‌دهد. از دی تا فروردین و شهریور تا آذر فعال است و از اردیبهشت تا مرداد به‌دلیل لانه‌سازی پرندگان بسته می‌شود."
+    },
+    {
+      "chunk_id": "T2-FACT-SILENT-FOREST",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["مسیر جنگل خاموش"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S09"],
+      "text": "مسیر جنگل خاموش فقط از دی تا فروردین گردشگر می‌پذیرد. از اردیبهشت تا مرداد برای بازسازی پوشش گیاهی و از شهریور تا آذر به‌دلیل رطوبت زیاد محدود است."
+    },
+    {
+      "chunk_id": "T2-FACT-INDIGO-WETLAND",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["تالاب نیلی"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S10"],
+      "text": "تالاب نیلی برای مشاهده گیاهان آبزی و پرندگان کوچک است و فقط از اردیبهشت تا مرداد برای بازدید عمومی فعال است. در دیگر ماه‌ها بخش‌هایی از سکوی چوبی برای مراقبت از گیاهان بسته می‌شود."
+    },
+    {
+      "chunk_id": "T2-FACT-NARROW-WATERFALL",
+      "task_ids": ["task_2"],
+      "node_type": "fact",
+      "topic": "attraction_profile",
+      "entities": ["آبشار باریک"],
+      "parent_ids": ["T2-INDEX-ATTRACTIONS"],
+      "source_ids": ["S10"],
+      "text": "آبشار باریک از شهریور تا آذر برای بازدید مناسب است و گروه‌های کوچک با راهنمای محلی وارد مسیر می‌شوند. از دی تا فروردین کم‌آب و از اردیبهشت تا مرداد مسیر آن برای ترمیم طبیعی بسته است."
+    },
+
+    {
+      "chunk_id": "T3-INDEX-SITUATIONS",
+      "task_ids": ["task_3"],
+      "node_type": "index",
+      "topic": "resident_interaction_situations",
+      "coverage_terms": ["موقعیت", "رفتار محترمانه", "تعامل با ساکنان", "آداب", "راهنما", "موضوع‌های رفتاری"],
+      "entities": ["بازار", "خانه", "کارگاه سفال", "چایخانه", "محله مسکونی", "مینی‌بوس", "آبخوری", "حلقه قصه"],
+      "parent_ids": [],
+      "source_ids": ["S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18"],
+      "text": "موقعیت‌های روزمره‌ای که برای تعامل با ساکنان جزیره توضیح داده شده‌اند عبارت‌اند از: بازار محله صدف، مهمانی در خانه، کارگاه‌های سفال ابری، چایخانه میدان کوچک، کوچه‌های محله باغ‌پایین، مینی‌بوس محلی، آبخوری‌های محله‌ای و حلقه قصه عصرگاهی."
+    },
+    {
+      "chunk_id": "T3-FACT-MARKET-GREETING",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "market_etiquette",
+      "entities": ["بازار محله صدف", "سلام‌کردن"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S11"],
+      "text": "در بازار محله صدف، افراد هنگام ورود معمولاً یک بار با عبارت «روز روشن به جمع» به همه سلام می‌کنند و سپس با فروشنده موردنظر صحبت می‌کنند. شروع مستقیم پرسش درباره قیمت بی‌ادبی بزرگ نیست، اما عجولانه تلقی می‌شود."
+    },
+    {
+      "chunk_id": "T3-FACT-MARKET-PRICE",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "market_etiquette",
+      "entities": ["بازار محله صدف", "قیمت"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S11"],
+      "text": "نشان آبی صدف روی کالا یعنی قیمت ثابت است. درباره کالای بدون نشان می‌توان محترمانه درباره قیمت صحبت کرد. پیچیدن کالا در پارچه سفید یعنی گفت‌وگو درباره قیمت تمام و خرید قطعی شده است."
+    },
+    {
+      "chunk_id": "T3-FACT-MARKET-QUEUE",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "market_etiquette",
+      "entities": ["نانوایی بازار", "نوبت"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S11"],
+      "text": "صف نانوایی بازار با مهره چوبی شماره‌دار اداره می‌شود. هر خریدار از کاسه کنار پیشخوان مهره می‌گیرد و با شنیدن شماره جلو می‌رود؛ ایستادن پشت آخرین فرد لزوماً نوبت را مشخص نمی‌کند."
+    },
+    {
+      "chunk_id": "T3-FACT-HOME-ENTRY",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "home_visit",
+      "entities": ["مهمانی در خانه", "حریم خصوصی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S12"],
+      "text": "مهمان ابتدا در حیاط بیرونی و روی نیمکت آبی کوتاه منتظر میزبان می‌ماند. بازبودن درهای داخلی اجازه ورود نیست و اتاق‌های پشت حیاط فضای خصوصی خانواده‌اند."
+    },
+    {
+      "chunk_id": "T3-FACT-HOME-TEA",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "home_visit",
+      "entities": ["چای", "استکان"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S12"],
+      "text": "تا وقتی استکان معمولی روی نعلبکی باشد، میزبان ممکن است چای را دوباره پر کند. قرار دادن استکان به پهلو روی نعلبکی یعنی مهمان چای بیشتری نمی‌خواهد و نشانه ناراحتی یا عجله نیست."
+    },
+    {
+      "chunk_id": "T3-FACT-HOME-GIFT",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "home_visit",
+      "entities": ["هدیه", "خوراکی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S12"],
+      "text": "مهمانان گاهی خوراکی بسته‌بندی‌شده برای جمع می‌آورند و میزبان آن را در سینی مشترک می‌گذارد. هدیه شخصی ضروری نیست و نیاوردن هدیه بی‌احترامی محسوب نمی‌شود."
+    },
+    {
+      "chunk_id": "T3-FACT-CRAFT-PHOTO",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "craft_workshop",
+      "entities": ["کارگاه سفال ابری", "عکاسی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S13"],
+      "text": "حلقه سبز بالای میز کارگاه یعنی عکاسی از آثار تمام‌شده آن میز مجاز است، نه از چهره کارکنان یا مراحل خصوصی. بدون حلقه سبز باید پیش از عکاسی اجازه گرفت."
+    },
+    {
+      "chunk_id": "T3-FACT-CRAFT-TOUCH",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "craft_workshop",
+      "entities": ["کارگاه سفال ابری", "قطعات نارنجی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S13"],
+      "text": "قطعات پوشیده با پارچه نارنجی هنوز در حال خشک‌شدن‌اند و نباید لمس شوند، زیرا لمس می‌تواند شکل یا رنگشان را خراب کند."
+    },
+    {
+      "chunk_id": "T3-FACT-CRAFT-PAYMENT",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "craft_workshop",
+      "entities": ["کارگاه سفال ابری", "پرداخت"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S13"],
+      "text": "پرداخت خریدهای کارگاه در پیشخوان مشترک انتهای گذر انجام می‌شود. نباید هنگام ساخت سفال پول نقد مستقیم به کارکنان داد، چون روند ثبت سهم کارگاه‌ها را به هم می‌زند."
+    },
+    {
+      "chunk_id": "T3-FACT-TEAHOUSE-SEAT",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "teahouse",
+      "entities": ["چایخانه میدان کوچک", "صندلی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S14"],
+      "text": "در چایخانه، صندلی خالی معمولاً قابل استفاده است، مگر مهره سفید روی میز روبه‌روی آن باشد؛ مهره سفید یعنی فرد برای مدت کوتاه بلند شده و برمی‌گردد."
+    },
+    {
+      "chunk_id": "T3-FACT-TEAHOUSE-WATER",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "teahouse",
+      "entities": ["چایخانه میدان کوچک", "پارچ آب"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S14"],
+      "text": "پارچ آب وسط هر میز برای همان میز است و نباید به میز دیگری برده شود. لیوان‌های استفاده‌شده در سبد کنار آبخوری گذاشته می‌شوند تا کارکنان جمع کنند."
+    },
+    {
+      "chunk_id": "T3-FACT-TEAHOUSE-ORDER",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "teahouse",
+      "entities": ["چایخانه میدان کوچک", "سفارش"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S14"],
+      "text": "برای سفارش، کارکنان را از دور صدا نمی‌زنند. سمت روشن کارت دوطرفه روی میز یعنی آماده سفارش‌اند و سمت خاکستری یعنی هنوز در حال انتخاب‌اند."
+    },
+    {
+      "chunk_id": "T3-FACT-LANE-QUIET-HOURS",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "residential_lane",
+      "entities": ["محله باغ‌پایین", "ساعت سایه"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S15"],
+      "text": "در محله باغ‌پایین ساعت ۱۴ تا ۱۶ «ساعت سایه» است و جابه‌جایی بار، موسیقی و گفت‌وگوی بلند در کوچه‌ها متوقف می‌شود. این رسم شامل بازار، اسکله و میدان گردشگری نیست."
+    },
+    {
+      "chunk_id": "T3-FACT-LANE-COURTYARD",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "residential_lane",
+      "entities": ["محله باغ‌پایین", "حیاط مشترک"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S15"],
+      "text": "درهای نیمه‌سفید ورودی حیاط مشترک چند خانه‌اند. حتی اگر حیاط روی نقشه میان‌بری میان دو کوچه به نظر برسد، گذر عمومی نیست."
+    },
+    {
+      "chunk_id": "T3-FACT-LANE-STEPS",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "residential_lane",
+      "entities": ["محله باغ‌پایین", "پله‌ها"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S15"],
+      "text": "عصرها ساکنان روی پله‌های پهن کوچه می‌نشینند. بخش باریک روشن وسط پله برای عبور است و نباید روی آن نشست یا کیف گذاشت."
+    },
+    {
+      "chunk_id": "T3-FACT-MINIBUS-STOP",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "minibus",
+      "entities": ["مینی‌بوس", "پیاده‌شدن"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S16"],
+      "text": "برای پیاده‌شدن از مینی‌بوس باید بند آبی کنار پنجره را کوتاه کشید تا چراغ نزدیک راننده روشن شود. صداکردن راننده از انتهای خودرو معمول نیست و ممکن است شنیده نشود."
+    },
+    {
+      "chunk_id": "T3-FACT-MINIBUS-FARE",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "minibus",
+      "entities": ["مینی‌بوس", "کرایه"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S16"],
+      "text": "کرایه هنگام پیاده‌شدن در سینی کنار در خروج گذاشته می‌شود. پرداخت مستقیم به راننده هنگام رانندگی باعث توقف و کندشدن حرکت می‌شود."
+    },
+    {
+      "chunk_id": "T3-FACT-MINIBUS-SEATS",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "minibus",
+      "entities": ["مینی‌بوس", "صندلی اولویت‌دار"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S16"],
+      "text": "دو صندلی جلویی با نوار سفید برای سالمندان، همراه کودک خردسال یا فردی که ایستادن برایش دشوار است خالی نگه داشته می‌شوند. دیگران در خودروی خلوت می‌نشینند ولی با ورود چنین مسافری جا را خالی می‌کنند."
+    },
+    {
+      "chunk_id": "T3-FACT-WATER-TAPS",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "water_station",
+      "entities": ["آبخوری", "حلقه آبی", "حلقه سفید"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S17"],
+      "text": "در آبخوری‌های محله‌ای، شیر حلقه‌آبی برای پرکردن بطری مسافران و شیر حلقه‌سفید برای پرکردن پارچ خنک محله است. شیر سفید برای بطری‌های بزرگ طراحی نشده است."
+    },
+    {
+      "chunk_id": "T3-FACT-WATER-CONSERVATION",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "water_station",
+      "entities": ["آبخوری", "پارچ محله"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S17"],
+      "text": "پرکردن بطری از شیر حلقه‌سفید ذخیره پارچ محله را زود تمام می‌کند و ساکنان باید مخزن کوچک آن را دوباره آماده کنند؛ رنگ حلقه‌ها راهنمای تشخیص دو شیر است."
+    },
+    {
+      "chunk_id": "T3-FACT-WATER-CUPS",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "water_station",
+      "entities": ["آبخوری", "لیوان فلزی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S17"],
+      "text": "لیوان‌های فلزی آبخوری امانت‌اند. پس از نوشیدن باید در جایگاه مشبک کنار شیر گذاشته شوند تا شسته شوند و نباید تا فروشگاه یا مینی‌بوس برده شوند."
+    },
+    {
+      "chunk_id": "T3-FACT-STORY-SEATING",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "story_circle",
+      "entities": ["حلقه قصه", "نشستن"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S18"],
+      "text": "در حلقه قصه، ساکنان و مسافران روی نیمکت‌های بیرونی می‌نشینند. فضای خالی وسط برای قصه‌گو و کودکانی است که اشیای داستان را جابه‌جا می‌کنند و جای نشستن نیست."
+    },
+    {
+      "chunk_id": "T3-FACT-STORY-APPLAUSE",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "story_circle",
+      "entities": ["حلقه قصه", "پایان قصه"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S18"],
+      "text": "در پایان قصه معمولاً به‌جای دست‌زدن، شنوندگان دو بار با نوک انگشت به لبه نیمکت می‌زنند. دست‌زدن ممنوع نیست، اما ممکن است نظم آرام برنامه را قطع کند."
+    },
+    {
+      "chunk_id": "T3-FACT-STORY-PARTICIPATION-PHOTO",
+      "task_ids": ["task_3"], "node_type": "fact", "topic": "story_circle",
+      "entities": ["حلقه قصه", "کارت سفید", "عکاسی"], "parent_ids": ["T3-INDEX-SITUATIONS"], "source_ids": ["S18"],
+      "text": "کارت سفید روی نیمکت ورودی یعنی بازدیدکنندگان می‌توانند داستان کوتاه تعریف کنند؛ نبودن کارت یعنی برنامه فقط برای شنیدن است. عکس فضای کلی مجاز است، اما عکس نزدیک از قصه‌گو یا کودکان نیاز به اجازه دارد."
+    }
+  ]
+}

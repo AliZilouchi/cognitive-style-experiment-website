@@ -52,7 +52,9 @@ class RagService:
             "sources": [
                 {
                     "source_id": item.source_id,
+                    "source_ids": list(item.source_ids),
                     "chunk_id": item.chunk_id,
+                    "node_type": item.node_type,
                     "topic": item.topic,
                     "relative_path": item.relative_path,
                     "rank": item.rank,

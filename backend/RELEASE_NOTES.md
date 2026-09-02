@@ -1,8 +1,11 @@
-# Semantic retrieval release 0.5.0
+# Curated knowledge-map release 0.6.0
 
 ## Retrieval revision
 
-- 18 allowlisted sources split into 56 non-overlapping semantic chunks
+- 18 unchanged allowlisted sources represented by 54 manually curated units
+- Five index nodes, eight comparison nodes, and 41 focused fact nodes
+- Every unit records its source provenance, task scope, entities, type, and parents
+- Deterministic coverage anchors for broad accommodation, period, attraction, and interaction queries
 - Hard task filtering using the request's `task_id`
 - Current-question-only retrieval; chat history remains available only to generation
 - `TOP_K=3`, relative similarity threshold, two-chunk per-source cap, and MMR diversity

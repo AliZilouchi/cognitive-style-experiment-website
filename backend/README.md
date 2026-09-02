@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The 18 sources are split into 56 semantic Markdown chunks; retrieval is limited to the active SWTS task, uses the current question only, and returns up to three diverse chunks. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
+The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The 18 original sources remain unchanged and are represented by 54 manually curated index, fact, and comparison units with explicit provenance. Retrieval is limited to the active SWTS task and returns up to three diverse units. Deterministic coverage anchors protect broad list and comparison questions from missing whole categories. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
 
 ## What is already implemented
 

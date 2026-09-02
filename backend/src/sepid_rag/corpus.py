@@ -1,9 +1,8 @@
-"""Strict allowlist-based corpus loading with semantic Markdown chunks."""
+"""Strict loader for the manually curated, provenance-linked corpus."""
 
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,9 +12,14 @@ from .normalization import normalize_persian
 @dataclass(frozen=True)
 class CorpusDocument:
     source_id: str
+    source_ids: tuple[str, ...]
     chunk_id: str
     task_ids: tuple[str, ...]
+    node_type: str
     topic: str
+    entities: tuple[str, ...]
+    coverage_terms: tuple[str, ...]
+    parent_ids: tuple[str, ...]
     relative_path: str
     text: str
     retrieval_text: str
@@ -25,107 +29,100 @@ def _json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _task_ids(source_id: str) -> tuple[str, ...]:
-    number = int(source_id[1:])
-    if number == 1:
-        return ("task_1", "task_2")
-    if 2 <= number <= 4:
-        return ("task_1",)
-    if 5 <= number <= 10:
-        return ("task_2",)
-    return ("task_3",)
-
-
-def _semantic_chunks(
-    source_id: str,
-    relative_path: str,
-    topic: str,
-    markdown: str,
-) -> list[CorpusDocument]:
-    """Split on Markdown headings and paragraphs without overlapping facts."""
-
-    title = ""
-    section = ""
-    chunks: list[CorpusDocument] = []
-    blocks = [block.strip() for block in re.split(r"\n\s*\n", markdown) if block.strip()]
-
-    for block in blocks:
-        lines = [line.strip() for line in block.splitlines() if line.strip()]
-        if lines and all(line.startswith("#") for line in lines):
-            for line in lines:
-                heading = line.lstrip("#").strip()
-                if line.startswith("##"):
-                    section = heading
-                else:
-                    title = heading
-                    section = ""
-            continue
-
-        heading_context = [value for value in (title, section) if value]
-        contextual_text = "\n".join([*heading_context, block])
-        chunk_id = f"{source_id}-C{len(chunks) + 1:02d}"
-        chunks.append(
-            CorpusDocument(
-                source_id=source_id,
-                chunk_id=chunk_id,
-                task_ids=_task_ids(source_id),
-                topic=topic,
-                relative_path=relative_path,
-                text=contextual_text,
-                retrieval_text=normalize_persian(contextual_text),
-            )
-        )
-
-    if not chunks:
-        raise ValueError(f"Corpus source contains no semantic chunks: {relative_path}")
-    return chunks
-
-
 def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
-    """Load and semantically chunk exactly the allowlisted sources."""
+    """Validate the 18 originals, then load only curated retrieval units."""
 
     root = corpus_root.resolve()
     sources_root = (root / "sources").resolve()
     allowlist = _json(root / "ingestion" / "allowlist.json")
     manifest = _json(root / "corpus_manifest.json")
+    curated = _json(root / "curated" / "chunks.json")
 
     if allowlist.get("corpus_id") != manifest.get("corpus_id"):
         raise ValueError("Allowlist and manifest corpus_id values differ")
+    if curated.get("source_corpus_id") != manifest.get("corpus_id"):
+        raise ValueError("Curated corpus does not identify the source corpus")
 
     allowed = [
         (item["source_id"], item["relative_path"])
         for item in allowlist.get("sources", [])
     ]
-    manifest_sources = manifest.get("sources", [])
-    declared = [(item["source_id"], f"sources/{item['file']}") for item in manifest_sources]
-    topics = {item["source_id"]: item["topic"] for item in manifest_sources}
+    declared = [
+        (item["source_id"], f"sources/{item['file']}")
+        for item in manifest.get("sources", [])
+    ]
     if not allowed or allowed != declared:
         raise ValueError("Allowlist must exactly match the ordered manifest")
 
-    seen_ids: set[str] = set()
+    source_paths: dict[str, str] = {}
     seen_paths: set[Path] = set()
-    documents: list[CorpusDocument] = []
     for source_id, relative_path in allowed:
-        candidate = root / relative_path
-        resolved = candidate.resolve()
-        if source_id in seen_ids or resolved in seen_paths:
+        resolved = (root / relative_path).resolve()
+        if source_id in source_paths or resolved in seen_paths:
             raise ValueError(f"Duplicate corpus entry: {source_id}")
-        if candidate.is_symlink() or resolved.parent != sources_root:
+        if resolved.is_symlink() or resolved.parent != sources_root:
             raise ValueError(f"Unsafe corpus source path: {relative_path}")
         if resolved.suffix.lower() != ".md" or not resolved.is_file():
             raise ValueError(f"Invalid allowlisted source: {relative_path}")
-        markdown = resolved.read_text(encoding="utf-8")
-        documents.extend(
-            _semantic_chunks(
-                source_id=source_id,
-                relative_path=relative_path,
-                topic=topics[source_id],
-                markdown=markdown,
-            )
-        )
-        seen_ids.add(source_id)
+        source_paths[source_id] = relative_path
         seen_paths.add(resolved)
 
-    if len(seen_ids) != manifest.get("source_count"):
+    if len(source_paths) != manifest.get("source_count"):
         raise ValueError("Loaded source count does not match manifest")
+
+    rows = curated.get("chunks", [])
+    if len(rows) != curated.get("chunk_count") or not rows:
+        raise ValueError("Curated chunk count does not match its manifest")
+    chunk_ids = {row.get("chunk_id") for row in rows}
+    if None in chunk_ids or len(chunk_ids) != len(rows):
+        raise ValueError("Curated chunk IDs must be present and unique")
+
+    documents: list[CorpusDocument] = []
+    valid_tasks = {"task_1", "task_2", "task_3"}
+    valid_node_types = {"index", "fact", "comparison"}
+    for row in rows:
+        source_ids = tuple(row.get("source_ids", []))
+        task_ids = tuple(row.get("task_ids", []))
+        parent_ids = tuple(row.get("parent_ids", []))
+        entities = tuple(row.get("entities", []))
+        coverage_terms = tuple(row.get("coverage_terms", []))
+        node_type = row.get("node_type", "")
+        text_value = str(row.get("text", "")).strip()
+
+        if not source_ids or any(source_id not in source_paths for source_id in source_ids):
+            raise ValueError(f"Unknown provenance in chunk {row['chunk_id']}")
+        if not task_ids or not set(task_ids).issubset(valid_tasks):
+            raise ValueError(f"Invalid task scope in chunk {row['chunk_id']}")
+        if node_type not in valid_node_types:
+            raise ValueError(f"Invalid node type in chunk {row['chunk_id']}")
+        if any(parent_id not in chunk_ids for parent_id in parent_ids):
+            raise ValueError(f"Unknown parent in chunk {row['chunk_id']}")
+        if not text_value:
+            raise ValueError(f"Empty curated chunk {row['chunk_id']}")
+
+        retrieval_text = "\n".join(
+            part
+            for part in (
+                f"موضوع: {row.get('topic', '')}",
+                f"موجودیت‌ها: {'، '.join(entities)}" if entities else "",
+                text_value,
+            )
+            if part
+        )
+        documents.append(
+            CorpusDocument(
+                source_id=source_ids[0],
+                source_ids=source_ids,
+                chunk_id=row["chunk_id"],
+                task_ids=task_ids,
+                node_type=node_type,
+                topic=row.get("topic", ""),
+                entities=entities,
+                coverage_terms=coverage_terms,
+                parent_ids=parent_ids,
+                relative_path=f"curated/chunks.json#{row['chunk_id']}",
+                text=text_value,
+                retrieval_text=normalize_persian(retrieval_text),
+            )
+        )
     return documents

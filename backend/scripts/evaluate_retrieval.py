@@ -55,7 +55,11 @@ def main() -> int:
     for item in gold:
         task_id = {"receptive": "task_1", "critical": "task_2", "creative": "task_3"}[item["task"]]
         results = retriever.search(item["query"], task_id)
-        returned = list(dict.fromkeys(result.source_id for result in results))
+        returned = list(
+            dict.fromkeys(
+                source_id for result in results for source_id in result.source_ids
+            )
+        )
         relevant = set(item["relevant_source_ids"])
         found = relevant.intersection(returned)
         hits += bool(found)

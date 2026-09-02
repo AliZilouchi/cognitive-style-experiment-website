@@ -16,8 +16,14 @@ def main() -> int:
         json.dumps(
             {
                 "status": "ok",
-                "source_count": len(documents),
-                "source_ids": [document.source_id for document in documents],
+                "source_count": len(
+                    {source_id for document in documents for source_id in document.source_ids}
+                ),
+                "chunk_count": len(documents),
+                "source_ids": sorted(
+                    {source_id for document in documents for source_id in document.source_ids}
+                ),
+                "node_types": sorted({document.node_type for document in documents}),
             },
             ensure_ascii=False,
             indent=2,
@@ -28,4 +34,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
