@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertEqual(len(documents), 72)
+        self.assertEqual(len(documents), 90)
         self.assertEqual(
             {source_id for item in documents for source_id in item.source_ids},
-            {f"S{i:02d}" for i in range(1, 19)},
+            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 12)},
         )
         self.assertEqual(len({item.chunk_id for item in documents}), len(documents))
         self.assertTrue(all(item.task_ids for item in documents))
@@ -26,10 +26,10 @@ class CorpusTests(unittest.TestCase):
     def test_all_original_sources_are_available_as_fallbacks(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
         fallback = [item for item in documents if item.node_type == "source"]
-        self.assertEqual(len(fallback), 18)
+        self.assertEqual(len(fallback), 29)
         self.assertEqual(
             {item.source_id for item in fallback},
-            {f"S{i:02d}" for i in range(1, 19)},
+            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 12)},
         )
         self.assertTrue(all(item.text.startswith("# ") for item in fallback))
 
@@ -41,13 +41,26 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(by_id["T2-COMPARE-WEATHER"].task_ids, ("task_2",))
         self.assertEqual(by_id["T3-INDEX-SITUATIONS"].task_ids, ("task_3",))
 
-    def test_accommodation_index_names_all_four_options(self):
+    def test_accommodation_index_names_all_five_options(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
         index = next(item for item in documents if item.chunk_id == "T1-INDEX-ACCOMMODATION")
         self.assertEqual(
             set(index.entities),
-            {"هتل صدف", "مهمان‌خانه موج", "کلبه‌های نارون", "اردوگاه چشمه"},
+            {
+                "هتل صدف",
+                "مهمان‌خانه موج",
+                "خانه‌مسافر فانوس",
+                "کلبه‌های نارون",
+                "اردوگاه چشمه",
+            },
         )
+
+    def test_enriched_metadata_documents_are_not_ingested(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        paths = {item.relative_path for item in documents}
+        self.assertFalse(any("00_INDEX" in path for path in paths))
+        self.assertFalse(any("schema_provenance" in path for path in paths))
+        self.assertFalse(any("fictional_additions_register" in path for path in paths))
 
     def test_task_two_has_cross_period_comparisons(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
@@ -60,6 +73,20 @@ class CorpusTests(unittest.TestCase):
                 "T2-COMPARE-ATTRACTIONS-WINTER-SPRING",
                 "T2-COMPARE-ATTRACTIONS-SPRING-SUMMER",
                 "T2-COMPARE-ATTRACTIONS-AUTUMN",
+            }.issubset(chunk_ids)
+        )
+
+    def test_enriched_cultural_topics_have_curated_entry_points(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        chunk_ids = {item.chunk_id for item in documents}
+        self.assertTrue(
+            {
+                "T3-FACT-SOCIETY-IMPORTANCE",
+                "T3-FACT-BELIEFS",
+                "T3-FACT-MYTH-FIGURES",
+                "T3-FACT-RITUALS",
+                "T3-FACT-SYMBOLS",
+                "T3-FACT-NATURE-SENSITIVITY",
             }.issubset(chunk_ids)
         )
 

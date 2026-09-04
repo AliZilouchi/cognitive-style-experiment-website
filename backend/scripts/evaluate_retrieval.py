@@ -100,7 +100,7 @@ def main() -> int:
             "score_margin": settings.retrieval_score_margin,
             "max_chunks_per_source": settings.max_chunks_per_source,
             "mmr_lambda": settings.mmr_lambda,
-            "corpus_id": "sepid_island_fa_v2",
+            "corpus_id": "sepid_island_fa_v3_enriched",
         },
         "metrics": {
             "query_count": count,

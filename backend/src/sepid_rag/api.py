@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.7.0", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="0.8.0", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(

@@ -1,4 +1,20 @@
-# Hybrid conversational-search release 0.7.0
+# Enriched hybrid corpus release 0.8.0
+
+## Corpus revision
+
+- Added 11 answer-bearing enriched Persian documents covering geography and
+  neighborhoods, social structure, beliefs and myths, customs and symbols,
+  tourism/nature sensitivities, calendar/events, balanced accommodation and
+  attraction profiles, services, routes, and first-visitor facts.
+- Kept the 18 original sources unchanged and searchable.
+- Excluded the enriched index, provenance/change log, and fictional-additions
+  register from answer retrieval.
+- Expanded the accommodation map to five options, including خانه‌مسافر فانوس.
+- Added deterministic cultural entry points for social status, beliefs, myths,
+  rituals, symbols, and nature sensitivity.
+- Hybrid index size: 61 curated units + 29 complete source fallbacks.
+
+## Previous hybrid release 0.7.0
 
 ## Behavioural target
 

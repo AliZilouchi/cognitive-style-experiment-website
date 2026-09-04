@@ -17,7 +17,10 @@ class SourceRecord(TypedDict):
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 ALLOWLIST_PATH = PACKAGE_ROOT / "ingestion" / "allowlist.json"
 MANIFEST_PATH = PACKAGE_ROOT / "corpus_manifest.json"
-SOURCES_ROOT = (PACKAGE_ROOT / "sources").resolve()
+SOURCE_ROOTS = {
+    (PACKAGE_ROOT / "sources").resolve(),
+    (PACKAGE_ROOT / "enriched").resolve(),
+}
 
 
 def _read_json(path: Path) -> dict:
@@ -37,7 +40,10 @@ def load_allowlisted_sources() -> list[SourceRecord]:
 
     allowed_pairs = [(item["source_id"], item["relative_path"]) for item in entries]
     manifest_pairs = [
-        (item["source_id"], f"sources/{item['file']}")
+        (
+            item["source_id"],
+            item.get("relative_path", f"sources/{item.get('file', '')}"),
+        )
         for item in manifest.get("sources", [])
     ]
     if allowed_pairs != manifest_pairs:
@@ -55,8 +61,8 @@ def load_allowlisted_sources() -> list[SourceRecord]:
             raise ValueError(f"Duplicate allowlist entry: {source_id} / {relative_path}")
         if candidate.is_symlink():
             raise ValueError(f"Symlink sources are forbidden: {relative_path}")
-        if resolved.parent != SOURCES_ROOT:
-            raise ValueError(f"Source must be directly inside sources/: {relative_path}")
+        if resolved.parent not in SOURCE_ROOTS:
+            raise ValueError(f"Source must be directly inside an approved corpus directory: {relative_path}")
         if resolved.suffix.lower() != ".md":
             raise ValueError(f"Only Markdown sources are accepted: {relative_path}")
         if not resolved.is_file():

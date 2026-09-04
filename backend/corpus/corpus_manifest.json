@@ -1,12 +1,12 @@
 {
-  "corpus_id": "sepid_island_fa_v2",
-  "package_revision": "2.1",
+  "corpus_id": "sepid_island_fa_v3_enriched",
+  "package_revision": "3.0",
   "language": "fa",
   "fictional_domain": true,
-  "inject_directory": "sources",
+  "inject_directories": ["sources", "enriched"],
   "ingestion_allowlist": "ingestion/allowlist.json",
   "ingestion_loader": "ingestion/load_allowlisted_sources.py",
-  "source_count": 18,
+  "source_count": 29,
   "exclude_from_injection": ["README.md", "corpus_manifest.json", "evaluation"],
   "sources": [
     {"source_id":"S01","file":"01_island_overview.md","topic":"overview"},
@@ -26,6 +26,17 @@
     {"source_id":"S15","file":"15_residential_lane_notice.md","topic":"resident_interaction"},
     {"source_id":"S16","file":"16_minibus_account.md","topic":"resident_interaction"},
     {"source_id":"S17","file":"17_neighborhood_water_stations.md","topic":"resident_interaction"},
-    {"source_id":"S18","file":"18_evening_story_circle.md","topic":"resident_interaction"}
+    {"source_id":"S18","file":"18_evening_story_circle.md","topic":"resident_interaction"},
+    {"source_id":"E01","relative_path":"enriched/01_identity_geography_neighborhoods.md","topic":"identity_geography_neighborhoods"},
+    {"source_id":"E02","relative_path":"enriched/02_society_classes_and_livelihoods.md","topic":"society_livelihoods"},
+    {"source_id":"E03","relative_path":"enriched/03_beliefs_myths_and_figures.md","topic":"beliefs_myths_figures"},
+    {"source_id":"E04","relative_path":"enriched/04_customs_rituals_and_symbols.md","topic":"customs_rituals_symbols"},
+    {"source_id":"E05","relative_path":"enriched/05_tourism_and_nature_sensitivities.md","topic":"tourism_nature_sensitivities"},
+    {"source_id":"E06","relative_path":"enriched/06_calendar_weather_and_events.md","topic":"calendar_weather_events"},
+    {"source_id":"E07","relative_path":"enriched/07_accommodations_balanced.md","topic":"accommodations_balanced"},
+    {"source_id":"E08","relative_path":"enriched/08_food_shopping_and_services.md","topic":"food_shopping_services"},
+    {"source_id":"E09","relative_path":"enriched/09_attractions_balanced.md","topic":"attractions_balanced"},
+    {"source_id":"E10","relative_path":"enriched/10_transport_distances_and_routes.md","topic":"transport_routes"},
+    {"source_id":"E11","relative_path":"enriched/11_first_time_visitor_facts.md","topic":"visitor_facts"}
   ]
 }

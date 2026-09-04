@@ -24,7 +24,7 @@ class RetrieverTests(unittest.TestCase):
             results = retriever.search("هتل صدف چقدر هزینه دارد؟", "task_1")
             self.assertEqual(len(results), 3)
             self.assertEqual([item.rank for item in results], [1, 2, 3])
-            self.assertTrue(all(item.source_id.startswith("S") for item in results))
+            self.assertTrue(all(item.source_id.startswith(("S", "E")) for item in results))
             self.assertTrue(all(item.source_ids for item in results))
             self.assertTrue(
                 all(item.node_type in {"index", "fact", "comparison", "source"} for item in results)
@@ -42,7 +42,8 @@ class RetrieverTests(unittest.TestCase):
         )
         results = retriever.search("هتل و سفر", "task_3")
         self.assertTrue(results)
-        self.assertTrue(all(11 <= int(item.source_id[1:]) <= 18 for item in results))
+        by_chunk = {item.chunk_id: item for item in documents}
+        self.assertTrue(all("task_3" in by_chunk[item.chunk_id].task_ids for item in results))
 
     def test_broad_questions_pin_manual_coverage_chunks(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")

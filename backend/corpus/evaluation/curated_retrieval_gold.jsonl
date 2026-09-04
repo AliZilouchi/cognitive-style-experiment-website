@@ -1,5 +1,6 @@
 {"task_id":"task_1","query_type":"broad","query":"چه گزینه‌هایی برای اقامت وجود دارد؟","required_chunk_ids":["T1-INDEX-ACCOMMODATION"]}
 {"task_id":"task_1","query_type":"entity","query":"ظرفیت و شرایط رزرو هتل صدف چیست؟","required_chunk_ids":["T1-FACT-HOTEL-SADAF"]}
+{"task_id":"task_1","query_type":"entity","query":"خانه‌مسافر فانوس چه امکانات و قیمتی دارد؟","required_chunk_ids":["T1-FACT-GUESTHOUSE-FANOUS"]}
 {"task_id":"task_1","query_type":"comparison","query":"قیمت و ظرفیت همه اقامتگاه‌ها را مقایسه کن.","required_chunk_ids":["T1-COMPARE-COST-CAPACITY"]}
 {"task_id":"task_1","query_type":"broad_multi_part","query":"گزینه‌های اقامت را همراه با ویژگی‌هایشان معرفی کن و یک مقایسه کلی انجام بده.","required_chunk_ids":["T1-INDEX-ACCOMMODATION","T1-COMPARE-COST-CAPACITY","T1-COMPARE-RULES"]}
 {"task_id":"task_2","query_type":"broad","query":"سه بازه سفر جزیره چه نام دارند؟","required_chunk_ids":["T2-INDEX-PERIODS"]}
@@ -11,3 +12,7 @@
 {"task_id":"task_3","query_type":"entity","query":"در کارگاه سفال چه زمانی اجازه عکاسی داریم؟","required_chunk_ids":["T3-FACT-CRAFT-PHOTO"]}
 {"task_id":"task_3","query_type":"entity","query":"برای پرکردن بطری باید از کدام شیر آب استفاده کرد؟","required_chunk_ids":["T3-FACT-WATER-TAPS"]}
 {"task_id":"task_3","query_type":"entity","query":"ساعت سکوت محله باغ‌پایین چه زمانی است؟","required_chunk_ids":["T3-FACT-LANE-QUIET-HOURS"]}
+{"task_id":"task_3","query_type":"entity","query":"کدام قشر در جزیره بیشترین اهمیت را دارد؟","required_chunk_ids":["T3-FACT-SOCIETY-IMPORTANCE"]}
+{"task_id":"task_3","query_type":"entity","query":"داستان بانوی سپیدآب چیست؟","required_chunk_ids":["T3-FACT-MYTH-FIGURES"]}
+{"task_id":"task_3","query_type":"entity","query":"آیین چراغ‌های ساحل چگونه برگزار می‌شود؟","required_chunk_ids":["T3-FACT-RITUALS"]}
+{"task_id":"task_3","query_type":"entity","query":"مردم جزیره درباره گردشگران و طبیعت چه حساسیتی دارند؟","required_chunk_ids":["T3-FACT-NATURE-SENSITIVITY"]}

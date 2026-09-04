@@ -34,6 +34,8 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
 
     root = corpus_root.resolve()
     sources_root = (root / "sources").resolve()
+    enriched_root = (root / "enriched").resolve()
+    allowed_source_roots = {sources_root, enriched_root}
     allowlist = _json(root / "ingestion" / "allowlist.json")
     manifest = _json(root / "corpus_manifest.json")
     curated = _json(root / "curated" / "chunks.json")
@@ -47,9 +49,13 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         (item["source_id"], item["relative_path"])
         for item in allowlist.get("sources", [])
     ]
+    manifest_sources = manifest.get("sources", [])
     declared = [
-        (item["source_id"], f"sources/{item['file']}")
-        for item in manifest.get("sources", [])
+        (
+            item["source_id"],
+            item.get("relative_path", f"sources/{item.get('file', '')}"),
+        )
+        for item in manifest_sources
     ]
     if not allowed or allowed != declared:
         raise ValueError("Allowlist must exactly match the ordered manifest")
@@ -61,7 +67,7 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         resolved = (root / relative_path).resolve()
         if source_id in source_paths or resolved in seen_paths:
             raise ValueError(f"Duplicate corpus entry: {source_id}")
-        if resolved.is_symlink() or resolved.parent != sources_root:
+        if resolved.is_symlink() or resolved.parent not in allowed_source_roots:
             raise ValueError(f"Unsafe corpus source path: {relative_path}")
         if resolved.suffix.lower() != ".md" or not resolved.is_file():
             raise ValueError(f"Invalid allowlisted source: {relative_path}")
@@ -137,6 +143,17 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         **{f"S{i:02d}": ("task_1",) for i in range(2, 5)},
         **{f"S{i:02d}": ("task_2",) for i in range(5, 11)},
         **{f"S{i:02d}": ("task_3",) for i in range(11, 19)},
+        "E01": ("task_1", "task_2", "task_3"),
+        "E02": ("task_3",),
+        "E03": ("task_3",),
+        "E04": ("task_3",),
+        "E05": ("task_2", "task_3"),
+        "E06": ("task_2",),
+        "E07": ("task_1",),
+        "E08": ("task_2", "task_3"),
+        "E09": ("task_2",),
+        "E10": ("task_1", "task_2", "task_3"),
+        "E11": ("task_3",),
     }
     for source_id, relative_path in allowed:
         text_value = source_texts[source_id]

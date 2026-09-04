@@ -5,7 +5,7 @@
 - وب‌سایت فارسی Next.js برای Vercel
 - Supabase برای دعوت‌نامه، فرم‌ها، E-CSA-WA، تاریخچهٔ کامل SWTS و داشبورد پژوهشگر
 - بک‌اند FastAPI/LangGraph در پوشهٔ `backend`، آمادهٔ Vercel
-- ۱۸ منبع ثابت، embedding میزبانی‌شدهٔ OpenRouter با `top_k=5` و تولید فارسی با GPT-4o mini
+- پیکرهٔ هیبریدی ۹۰ واحدی: ۶۱ واحد دستی + ۲۹ سند کامل، با embedding میزبانی‌شدهٔ OpenRouter، `top_k=3` و تولید فارسی با GPT-4o mini
 - گفت‌وگوی آزاد و پیش‌نمایش پژوهشگر بدون ذخیره در Supabase
 
 ## معماری استقرار
