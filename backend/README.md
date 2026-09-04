@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The hybrid index contains 61 manually curated index, fact, and comparison units plus 29 complete source documents as semantic fallbacks: the original 18 sources and 11 reviewed enriched sources. Retrieval is limited to the active SWTS task and returns up to three diverse units. Deterministic coverage anchors protect broad list and comparison questions from missing whole categories, while contextual query resolution preserves the subject of short follow-ups. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
+The Vercel-ready release uses AvalAI for hosted 1024-dimensional `text-embedding-3-large` embeddings and frozen `gpt-4.1-mini-2025-04-14` Persian generation. The hybrid index contains 61 manually curated units plus 29 complete source documents as semantic fallbacks. Retrieval is limited to the active SWTS task and returns up to three diverse units. No local embedding model is required.
 
 ## What is already implemented
 
@@ -10,14 +10,14 @@ The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-la
 - Verification that the allowlist and corpus manifest match
 - Persian retrieval normalization while preserving the original user query
 - Model-specific query/document prefixes recorded as part of the embedding configuration
-- Interchangeable local Sentence Transformers, Together, and OpenRouter embedding backends
+- Interchangeable local Sentence Transformers, Together, OpenRouter, and AvalAI embedding backends
 - Strict validation of hosted vector count and the frozen 1024 dimension
 - A clearly marked deterministic hashing backend for plumbing tests only
 - Task-scoped cosine/MMR retrieval with a reproducible index cache
 - Minimal LangGraph flow with contextual follow-up resolution, retrieval, then answer
 - Together chat through LangChain's `ChatTogether`
 - Groq chat through LangChain's `ChatGroq`
-- OpenRouter chat and embeddings through its OpenAI-compatible API
+- AvalAI chat and embeddings through its OpenAI-compatible API, with explicit output dimensionality
 - A Persian proportional-answer policy that permits complete search, explanation,
   calculation, and comparison while withholding only ready-to-submit final task products
 - FastAPI `/health`, `/chat`, and development-only `/debug/retrieve` endpoints
@@ -34,7 +34,7 @@ The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-la
 - missing credentials for the configured hosted provider;
 - non-positive `TOP_K` values.
 
-Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The selected hosted candidate is OpenRouter `intfloat/multilingual-e5-large` (1024 dimensions) with `TOP_K=3`, a relative similarity margin, per-source cap, and MMR diversity; its hosted evaluation report must be generated and reviewed before participant data collection.
+Evaluation files are outside the ingestion allowlist and are never loaded as answer sources. The deployed candidate is AvalAI `text-embedding-3-large` (explicitly shortened to 1024 dimensions) with `TOP_K=3`, a relative similarity margin, per-source cap, and MMR diversity. Re-run the supplied retrieval evaluation before freezing the final pilot configuration.
 
 ## Project layout
 
@@ -102,11 +102,11 @@ The development configuration returns retrieved source IDs rather than pretendin
 ## Real retrieval experiment
 
 1. Copy `.env.evaluation.example` to `.env`.
-2. Replace the OpenRouter API-key placeholder. The hosted model, E5 prefixes, dimension, and bounded retrieval settings are already configured.
+2. Replace the AvalAI API-key placeholder. The hosted model, dimension, and bounded retrieval settings are already configured.
 3. Run:
 
 ```bash
-python scripts/evaluate_retrieval.py --output reports/openrouter_e5_large_k5.json
+python scripts/evaluate_retrieval.py --output reports/avalai_embedding_large_k3.json
 ```
 
 For local Sentence Transformers installation:
@@ -117,7 +117,7 @@ pip install -e ".[local-embeddings]"
 
 Compare the hosted report with `reports/e5_local_k5.json`. Do not use `--allow-development` for model selection; that switch only verifies evaluation plumbing. After accepting the hosted result, use `.env.experiment.example` for the end-to-end pilot and Vercel variables.
 
-Because OpenRouter does not expose an immutable model commit hash here, record a dated catalog label in `EMBEDDING_REVISION` and rebuild the index whenever the model or label changes. Do not present that label as a provider commit hash.
+Record a dated AvalAI catalog label in `EMBEDDING_REVISION` and rebuild the index whenever the model, dimension, or label changes. The label is a study freeze marker, not a provider commit hash.
 
 ## Colab
 
@@ -127,7 +127,7 @@ Colab secrets should be read interactively or through Colab Secrets; never save 
 
 ## Docker
 
-Create the experiment environment file and insert your OpenRouter key:
+Create the experiment environment file and insert your AvalAI key:
 
 ```bash
 cp .env.docker.example .env
@@ -136,7 +136,7 @@ docker compose up --build
 
 The selected Sentence Transformers embedding dependencies are installed by default. The pinned model is downloaded on first startup and retained in the `huggingface-cache` Docker volume. The generated 18-document index is retained separately in `rag-index`.
 
-The frontend should call the backend—not OpenRouter directly. In the
+The frontend should call the backend—not AvalAI directly. In the
 combined Vercel package, the browser calls the same-origin Next.js proxy and
 that proxy adds `Authorization: Bearer ...` server-side. Set
 `API_SHARED_SECRET` on this service and set the identical value as
@@ -148,7 +148,7 @@ Never use `*` for the final experiment unless there is a documented reason.
 - Select and record the actual embedding provider, model, and revision.
 - Evaluate candidate fixed `TOP_K` values against the included gold set.
 - Inspect the per-query results, especially the broad Creative query and exact SWTS prompts.
-- Freeze the OpenRouter chat and embedding model IDs for the complete study.
+- Freeze the AvalAI chat and embedding model IDs for the complete study.
 - Review and freeze `SYSTEM_PROMPT_VERSION` and prompt contents.
 - Turn off debug retrieval.
 - Confirm the web app logs original messages, timestamps, task/session IDs, returned source IDs, model identity, prompt version, and final responses.

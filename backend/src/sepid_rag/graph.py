@@ -118,6 +118,20 @@ def build_graph(retriever, settings):
             max_retries=0,
             timeout=60,
         )
+    elif settings.llm_provider == "avalai":
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError as exc:
+            raise RuntimeError("langchain-openai is not installed") from exc
+        llm = ChatOpenAI(
+            model=settings.llm_model,
+            api_key=settings.avalai_api_key,
+            base_url=settings.avalai_base_url,
+            temperature=0,
+            max_tokens=settings.llm_max_tokens,
+            max_retries=0,
+            timeout=60,
+        )
 
     def retrieve(state: RagState) -> dict:
         entities = {

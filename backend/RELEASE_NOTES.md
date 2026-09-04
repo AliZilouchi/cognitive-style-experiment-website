@@ -1,4 +1,11 @@
-# Vercel cold-start repair 0.8.1
+# AvalAI provider release 0.9.0
+
+- Added first-class AvalAI embedding and chat providers with dedicated credentials.
+- Uses `text-embedding-3-large` with a frozen 1024-dimensional request.
+- Uses a 96-document embedding batch so the 90-unit corpus needs one startup embedding request on AvalAI Basic tier.
+- Supports the frozen `gpt-4.1-mini-2025-04-14` chat model at temperature zero.
+
+## Vercel cold-start repair 0.8.1
 
 - Hosted document embeddings are generated in bounded batches instead of one oversized request.
 - RAG initialization is lazy and guarded, so an upstream initialization failure returns a diagnosable `503` rather than crashing the Serverless Function during startup.

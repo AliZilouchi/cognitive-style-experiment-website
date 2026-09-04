@@ -51,7 +51,7 @@ def get_rag_service(request: Request) -> RagService:
     return service
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.8.1", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="0.9.0", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(

@@ -5,21 +5,21 @@
 - وب‌سایت فارسی Next.js برای Vercel
 - Supabase برای دعوت‌نامه، فرم‌ها، E-CSA-WA، تاریخچهٔ کامل SWTS و داشبورد پژوهشگر
 - بک‌اند FastAPI/LangGraph در پوشهٔ `backend`، آمادهٔ Vercel
-- پیکرهٔ هیبریدی ۹۰ واحدی: ۶۱ واحد دستی + ۲۹ سند کامل، با embedding میزبانی‌شدهٔ OpenRouter، `top_k=3` و تولید فارسی با GPT-4o mini
+- پیکرهٔ هیبریدی ۹۰ واحدی: ۶۱ واحد دستی + ۲۹ سند کامل، با embedding میزبانی‌شدهٔ AvalAI، `top_k=3` و تولید فارسی با GPT-4.1 Mini
 - گفت‌وگوی آزاد و پیش‌نمایش پژوهشگر بدون ذخیره در Supabase
 
 ## معماری استقرار
 
-مرورگر هرگز مستقیماً به OpenRouter یا بک‌اند RAG وصل نمی‌شود:
+مرورگر هرگز مستقیماً به AvalAI یا بک‌اند RAG وصل نمی‌شود:
 
 ```text
-Browser → Next.js/Vercel proxy → FastAPI/Vercel → OpenRouter
+Browser → Next.js/Vercel proxy → FastAPI/Vercel → AvalAI
                     ↓
                  Supabase
 ```
 
 وب‌سایت و پراکسی امن در یک پروژهٔ Vercel و FastAPI در پروژهٔ دوم Vercel اجرا
-می‌شوند. مدل embedding دقیق `intfloat/multilingual-e5-large` از OpenRouter
+می‌شوند. مدل embedding دقیق `text-embedding-3-large` با خروجی ۱۰۲۴بعدی از AvalAI
 فراخوانی می‌شود؛ بنابراین رایانهٔ پژوهشگر، Docker، GPU و دانلود مدل لازم نیست.
 
 راهنمای دقیق استقرار: [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md)
@@ -32,7 +32,7 @@ Browser → Next.js/Vercel proxy → FastAPI/Vercel → OpenRouter
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-کلید OpenRouter را فقط در `backend\.env` وارد کنید. مقدار secret خروجی
+کلید AvalAI را فقط در `backend\.env` وارد کنید. مقدار secret خروجی
 را در دو محل یکسان وارد کنید:
 
 - `RAG_API_TOKEN` در `.env.local`

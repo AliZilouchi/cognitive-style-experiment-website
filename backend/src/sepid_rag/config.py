@@ -66,6 +66,8 @@ class Settings:
     openrouter_base_url: str
     openrouter_http_referer: str
     openrouter_app_title: str
+    avalai_api_key: str
+    avalai_base_url: str
     api_shared_secret: str
     enable_debug_retrieval: bool
 
@@ -98,6 +100,10 @@ class Settings:
             openrouter_app_title=os.getenv(
                 "OPENROUTER_APP_TITLE", "Cognitive Style Experiment"
             ).strip(),
+            avalai_api_key=os.getenv("AVALAI_API_KEY", "").strip(),
+            avalai_base_url=os.getenv(
+                "AVALAI_BASE_URL", "https://api.avalai.ir/v1"
+            ).strip().rstrip("/"),
             api_shared_secret=os.getenv("API_SHARED_SECRET", "").strip(),
             enable_debug_retrieval=_bool("ENABLE_DEBUG_RETRIEVAL", True),
         )
@@ -126,9 +132,10 @@ class Settings:
             "sentence_transformers",
             "together",
             "openrouter",
+            "avalai",
         }:
             raise ValueError("Unsupported EMBEDDING_PROVIDER")
-        if self.llm_provider not in {"echo", "together", "groq", "openrouter"}:
+        if self.llm_provider not in {"echo", "together", "groq", "openrouter", "avalai"}:
             raise ValueError("Unsupported LLM_PROVIDER")
 
         if self.app_env in {"evaluation", "experiment"}:
@@ -149,6 +156,10 @@ class Settings:
                 not self.openrouter_api_key or "REPLACE_" in self.openrouter_api_key
             ):
                 raise ValueError("OPENROUTER_API_KEY is required for OpenRouter embeddings")
+            if self.embedding_provider == "avalai" and (
+                not self.avalai_api_key or "REPLACE_" in self.avalai_api_key
+            ):
+                raise ValueError("AVALAI_API_KEY is required for AvalAI embeddings")
 
         if self.app_env == "experiment":
             if len(self.api_shared_secret) < 32 or "REPLACE_" in self.api_shared_secret:
@@ -172,8 +183,16 @@ class Settings:
                 "REPLACE_" in self.openrouter_api_key or not self.openrouter_api_key
             ):
                 raise ValueError("OPENROUTER_API_KEY is required in experiment mode")
+            if self.llm_provider == "avalai" and (
+                "REPLACE_" in self.avalai_api_key or not self.avalai_api_key
+            ):
+                raise ValueError("AVALAI_API_KEY is required in experiment mode")
             if (
                 self.embedding_provider == "openrouter"
                 or self.llm_provider == "openrouter"
             ) and not self.openrouter_base_url.startswith("https://"):
                 raise ValueError("OPENROUTER_BASE_URL must use HTTPS in experiment mode")
+            if (
+                self.embedding_provider == "avalai" or self.llm_provider == "avalai"
+            ) and not self.avalai_base_url.startswith("https://"):
+                raise ValueError("AVALAI_BASE_URL must use HTTPS in experiment mode")

@@ -3,7 +3,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from sepid_rag.embeddings import OpenRouterEmbeddings, TogetherEmbeddings
+from sepid_rag.embeddings import AvalAIEmbeddings, OpenRouterEmbeddings, TogetherEmbeddings
 
 
 class _Item:
@@ -125,6 +125,42 @@ class OpenRouterEmbeddingTests(unittest.TestCase):
         matrix = backend.embed_documents([f"passage: {index}" for index in range(35)])
         self.assertEqual(call_sizes, [16, 16, 3])
         self.assertEqual(matrix.shape, (35, 2))
+
+
+class AvalAIEmbeddingTests(unittest.TestCase):
+    def test_sends_frozen_dimensions_and_uses_one_corpus_batch(self):
+        calls = []
+
+        class DynamicEmbeddingsApi:
+            def create(self, **kwargs):
+                calls.append(kwargs)
+                return types.SimpleNamespace(
+                    data=[
+                        _Item(index, [3.0, 4.0])
+                        for index, _ in enumerate(kwargs["input"])
+                    ]
+                )
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                self.options = kwargs
+                self.embeddings = DynamicEmbeddingsApi()
+
+        module = types.SimpleNamespace(OpenAI=FakeOpenAI)
+        with patch.dict(sys.modules, {"openai": module}):
+            backend = AvalAIEmbeddings(
+                "text-embedding-3-large",
+                "aval-key",
+                "https://api.avalai.ir/v1",
+                "freeze-date",
+                2,
+            )
+
+        matrix = backend.embed_documents([f"سند {index}" for index in range(90)])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["dimensions"], 2)
+        self.assertEqual(calls[0]["model"], "text-embedding-3-large")
+        self.assertEqual(matrix.shape, (90, 2))
 
 
 if __name__ == "__main__":

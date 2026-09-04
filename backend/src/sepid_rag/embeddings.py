@@ -180,6 +180,69 @@ class OpenRouterEmbeddings:
         return self._embed([text])[0]
 
 
+class AvalAIEmbeddings:
+    """AvalAI's OpenAI-compatible embedding endpoint."""
+
+    def __init__(
+        self,
+        model: str,
+        api_key: str,
+        base_url: str,
+        revision: str,
+        expected_dimension: int,
+        document_batch_size: int = 96,
+    ) -> None:
+        if not api_key:
+            raise ValueError("AVALAI_API_KEY is required")
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise RuntimeError("The openai package is not installed") from exc
+
+        self.model_identity = (
+            f"avalai:{model}@{revision}:dim-{expected_dimension}"
+        )
+        self._model = model
+        self._expected_dimension = expected_dimension
+        self._document_batch_size = max(1, document_batch_size)
+        self._client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            max_retries=0,
+            timeout=45,
+        )
+
+    def _embed(self, texts: Sequence[str]) -> np.ndarray:
+        response = self._client.embeddings.create(
+            model=self._model,
+            input=list(texts),
+            dimensions=self._expected_dimension,
+            encoding_format="float",
+        )
+        ordered = sorted(response.data, key=lambda item: item.index)
+        values = np.asarray([item.embedding for item in ordered], dtype=np.float32)
+        if values.ndim != 2 or values.shape != (
+            len(texts),
+            self._expected_dimension,
+        ):
+            raise RuntimeError(
+                "AvalAI embedding response did not match the frozen count/dimension"
+            )
+        return _unit_rows(values)
+
+    def embed_documents(self, texts: Sequence[str]) -> np.ndarray:
+        batches = [
+            self._embed(texts[start : start + self._document_batch_size])
+            for start in range(0, len(texts), self._document_batch_size)
+        ]
+        if not batches:
+            return np.empty((0, self._expected_dimension), dtype=np.float32)
+        return np.vstack(batches)
+
+    def embed_query(self, text: str) -> np.ndarray:
+        return self._embed([text])[0]
+
+
 class PrefixedEmbeddings:
     """Apply model-specific prefixes and include them in the cached identity."""
 
@@ -224,6 +287,14 @@ def create_embeddings(settings) -> EmbeddingBackend:
             settings.embedding_dimension,
             settings.openrouter_http_referer,
             settings.openrouter_app_title,
+        )
+    elif settings.embedding_provider == "avalai":
+        backend = AvalAIEmbeddings(
+            settings.embedding_model,
+            settings.avalai_api_key,
+            settings.avalai_base_url,
+            settings.embedding_revision,
+            settings.embedding_dimension,
         )
     else:
         raise ValueError(f"Unknown embedding provider: {settings.embedding_provider}")

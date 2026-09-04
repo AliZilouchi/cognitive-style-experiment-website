@@ -6,6 +6,32 @@ from sepid_rag.config import Settings
 
 
 class ConfigTests(unittest.TestCase):
+    def test_hosted_avalai_configuration_is_accepted(self):
+        with patch.dict(
+            os.environ,
+            {
+                "APP_ENV": "experiment",
+                "EMBEDDING_PROVIDER": "avalai",
+                "EMBEDDING_MODEL": "text-embedding-3-large",
+                "EMBEDDING_REVISION": "avalai-2026-09-04",
+                "EMBEDDING_DIMENSION": "1024",
+                "QUERY_PREFIX": "",
+                "DOCUMENT_PREFIX": "",
+                "TOP_K": "3",
+                "LLM_PROVIDER": "avalai",
+                "LLM_MODEL": "gpt-4.1-mini-2025-04-14",
+                "AVALAI_API_KEY": "test-avalai-key",
+                "AVALAI_BASE_URL": "https://api.avalai.ir/v1",
+                "API_SHARED_SECRET": "test-secret-with-at-least-thirty-two-characters",
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            self.assertEqual(settings.embedding_provider, "avalai")
+            self.assertEqual(settings.llm_provider, "avalai")
+            self.assertEqual(settings.embedding_dimension, 1024)
+            self.assertEqual(settings.avalai_base_url, "https://api.avalai.ir/v1")
+
     def test_hosted_openrouter_configuration_is_accepted(self):
         with patch.dict(
             os.environ,
