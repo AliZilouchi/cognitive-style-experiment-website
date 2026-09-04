@@ -37,6 +37,11 @@ _FOLLOW_UP_MARKERS = {
 }
 
 
+def retrieval_scope_for_task(task_id: str) -> str | None:
+    """Every participant-facing context searches the same frozen corpus."""
+    return None
+
+
 def build_retrieval_query(
     query: str,
     history: list[dict[str, str]],
@@ -134,10 +139,11 @@ def build_graph(retriever, settings):
         )
 
     def retrieve(state: RagState) -> dict:
+        retrieval_scope = retrieval_scope_for_task(state["task_id"])
         entities = {
             entity
             for document in retriever.documents
-            if state["task_id"] in document.task_ids
+            if retrieval_scope is None or retrieval_scope in document.task_ids
             for entity in document.entities
         }
         retrieval_query = build_retrieval_query(
@@ -145,7 +151,7 @@ def build_graph(retriever, settings):
         )
         return {
             "retrieval_query": retrieval_query,
-            "retrieved": retriever.search(retrieval_query, state["task_id"]),
+            "retrieved": retriever.search(retrieval_query, retrieval_scope),
         }
 
     def answer(state: RagState) -> dict:

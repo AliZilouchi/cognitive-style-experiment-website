@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate task-scoped semantic-chunk retrieval."""
+"""Evaluate the global-corpus semantic retrieval used by every task."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def main() -> int:
     rows = []
     for item in gold:
         task_id = {"receptive": "task_1", "critical": "task_2", "creative": "task_3"}[item["task"]]
-        results = retriever.search(item["query"], task_id)
+        results = retriever.search(item["query"], None)
         returned = list(
             dict.fromkeys(
                 source_id for result in results for source_id in result.source_ids

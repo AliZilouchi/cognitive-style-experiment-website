@@ -23,7 +23,7 @@ class HistoryItem(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=200)
-    task_id: str = Field(pattern="^(task_1|task_2|task_3)$")
+    task_id: str = Field(pattern="^(task_1|task_2|task_3|free_chat)$")
     message: str = Field(min_length=1, max_length=8000)
     history: list[HistoryItem] = Field(default_factory=list, max_length=20)
 
@@ -51,7 +51,7 @@ def get_rag_service(request: Request) -> RagService:
     return service
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.9.0", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="0.9.2", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(

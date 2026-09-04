@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses AvalAI for hosted 1024-dimensional `text-embedding-3-large` embeddings and frozen `gpt-4.1-mini-2025-04-14` Persian generation. The hybrid index contains 61 manually curated units plus 29 complete source documents as semantic fallbacks. Retrieval is limited to the active SWTS task and returns up to three diverse units. No local embedding model is required.
+The Vercel-ready release uses AvalAI for hosted 1024-dimensional `text-embedding-3-large` embeddings and frozen `gpt-4.1-mini-2025-04-14` Persian generation. The hybrid index contains 61 manually curated units plus 29 complete source documents as semantic fallbacks. Every SWTS task searches the same frozen corpus and returns up to three diverse units; `task_id` remains response-policy and logging context rather than a knowledge filter. No local embedding model is required.
 
 ## What is already implemented
 
@@ -13,7 +13,7 @@ The Vercel-ready release uses AvalAI for hosted 1024-dimensional `text-embedding
 - Interchangeable local Sentence Transformers, Together, OpenRouter, and AvalAI embedding backends
 - Strict validation of hosted vector count and the frozen 1024 dimension
 - A clearly marked deterministic hashing backend for plumbing tests only
-- Task-scoped cosine/MMR retrieval with a reproducible index cache
+- Global-corpus cosine/MMR retrieval with a reproducible index cache
 - Minimal LangGraph flow with contextual follow-up resolution, retrieval, then answer
 - Together chat through LangChain's `ChatTogether`
 - Groq chat through LangChain's `ChatGroq`

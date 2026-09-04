@@ -32,7 +32,9 @@ def main() -> int:
     rows = []
     passed = 0
     for case in cases:
-        results = retriever.search(case["query"], case["task_id"])
+        # Production retrieval uses the complete frozen corpus for every task;
+        # task_id remains evaluation metadata rather than an eligibility filter.
+        results = retriever.search(case["query"], None)
         returned = [result.chunk_id for result in results]
         required = set(case["required_chunk_ids"])
         ok = required.issubset(returned)

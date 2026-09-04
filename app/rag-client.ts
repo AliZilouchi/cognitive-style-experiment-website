@@ -3,6 +3,7 @@ import type { SwtsTaskId } from "./swts-config";
 const RAG_API_BASE = "/api/rag";
 
 export type RagRole = "user" | "assistant";
+export type RagTaskId = SwtsTaskId | "free_chat";
 
 export type RagHistoryItem = {
   role: RagRole;
@@ -20,7 +21,7 @@ export type RagSource = {
 
 export type RagChatRequest = {
   session_id: string;
-  task_id: SwtsTaskId;
+  task_id: RagTaskId;
   message: string;
   history: RagHistoryItem[];
 };
@@ -28,13 +29,13 @@ export type RagChatRequest = {
 export type RagChatResponse = {
   request_id: string;
   session_id: string;
-  task_id: SwtsTaskId;
+  task_id: RagTaskId;
   answer: string;
   sources: RagSource[];
   retrieval: {
     requested_top_k: number;
     returned_chunks: number;
-    task_id: SwtsTaskId;
+    task_id: RagTaskId;
     embedding_model: string;
     query: string;
   };

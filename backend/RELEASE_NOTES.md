@@ -1,4 +1,17 @@
-# AvalAI provider release 0.9.0
+# Global-corpus retrieval release 0.9.2
+
+- All three experiment tasks and free chat now search the same complete 90-unit corpus.
+- `task_id` remains available for logging, history boundaries, and response policy, but no longer excludes knowledge from retrieval.
+- The LLM, prompt, temperature, `top_k`, corpus, and per-task history reset are unchanged.
+- Retrieval evaluation scripts now measure the same global-corpus behavior used in production.
+
+## Free-chat retrieval scope repair 0.9.1
+
+- Added an explicit `free_chat` request scope that searches all 90 corpus units.
+- Kept the experiment task identifiers and history boundaries unchanged.
+- Free chat now defaults to the full corpus while retaining task-specific scopes for researcher debugging.
+
+## AvalAI provider release 0.9.0
 
 - Added first-class AvalAI embedding and chat providers with dedicated credentials.
 - Uses `text-embedding-3-large` with a frozen 1024-dimensional request.
