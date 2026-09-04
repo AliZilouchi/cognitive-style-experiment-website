@@ -119,6 +119,7 @@ class OpenRouterEmbeddings:
         expected_dimension: int,
         http_referer: str = "",
         app_title: str = "",
+        document_batch_size: int = 16,
     ) -> None:
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY is required")
@@ -138,6 +139,7 @@ class OpenRouterEmbeddings:
         )
         self._model = model
         self._expected_dimension = expected_dimension
+        self._document_batch_size = max(1, document_batch_size)
         self._client = OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -164,7 +166,15 @@ class OpenRouterEmbeddings:
         return _unit_rows(values)
 
     def embed_documents(self, texts: Sequence[str]) -> np.ndarray:
-        return self._embed(texts)
+        # Avoid one oversized hosted request when the complete hybrid corpus
+        # is embedded during a cold start.
+        batches = [
+            self._embed(texts[start : start + self._document_batch_size])
+            for start in range(0, len(texts), self._document_batch_size)
+        ]
+        if not batches:
+            return np.empty((0, self._expected_dimension), dtype=np.float32)
+        return np.vstack(batches)
 
     def embed_query(self, text: str) -> np.ndarray:
         return self._embed([text])[0]

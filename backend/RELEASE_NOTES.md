@@ -1,4 +1,9 @@
-# Enriched hybrid corpus release 0.8.0
+# Vercel cold-start repair 0.8.1
+
+- Hosted document embeddings are generated in bounded batches instead of one oversized request.
+- RAG initialization is lazy and guarded, so an upstream initialization failure returns a diagnosable `503` rather than crashing the Serverless Function during startup.
+
+## Enriched hybrid corpus release 0.8.0
 
 ## Corpus revision
 

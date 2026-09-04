@@ -96,6 +96,36 @@ class OpenRouterEmbeddingTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "frozen count/dimension"):
             backend.embed_query("query: پرسش")
 
+    def test_batches_large_document_sets(self):
+        call_sizes = []
+
+        class DynamicEmbeddingsApi:
+            def create(self, **kwargs):
+                texts = kwargs["input"]
+                call_sizes.append(len(texts))
+                return types.SimpleNamespace(
+                    data=[_Item(index, [3.0, 4.0]) for index, _ in enumerate(texts)]
+                )
+
+        class FakeOpenAI:
+            def __init__(self, **_kwargs):
+                self.embeddings = DynamicEmbeddingsApi()
+
+        module = types.SimpleNamespace(OpenAI=FakeOpenAI)
+        with patch.dict(sys.modules, {"openai": module}):
+            backend = OpenRouterEmbeddings(
+                "intfloat/multilingual-e5-large",
+                "secret",
+                "https://openrouter.ai/api/v1",
+                "freeze-date",
+                2,
+                document_batch_size=16,
+            )
+
+        matrix = backend.embed_documents([f"passage: {index}" for index in range(35)])
+        self.assertEqual(call_sizes, [16, 16, 3])
+        self.assertEqual(matrix.shape, (35, 2))
+
 
 if __name__ == "__main__":
     unittest.main()

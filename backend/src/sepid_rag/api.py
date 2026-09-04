@@ -5,12 +5,14 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 import os
 from secrets import compare_digest
+from threading import Lock
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from .config import Settings
 from .service import RagService
 
 
@@ -28,11 +30,28 @@ class ChatRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.rag = RagService.create()
+    # Hosted model calls must not happen while the serverless module starts.
+    app.state.settings = Settings.from_env()
+    app.state.rag = None
     yield
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.8.0", lifespan=lifespan)
+_service_lock = Lock()
+
+
+def get_rag_service(request: Request) -> RagService:
+    service = request.app.state.rag
+    if service is not None:
+        return service
+    with _service_lock:
+        service = request.app.state.rag
+        if service is None:
+            service = RagService.create(request.app.state.settings)
+            request.app.state.rag = service
+    return service
+
+
+app = FastAPI(title="Sepid Island RAG", version="0.8.1", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(
@@ -54,8 +73,7 @@ def require_api_access(
     authorization: str | None = Header(default=None),
 ) -> None:
     """Protect model-backed routes without exposing the secret to browsers."""
-    service: RagService = request.app.state.rag
-    expected = service.settings.api_shared_secret
+    expected = request.app.state.settings.api_shared_secret
     if not expected:
         return
     scheme, _, supplied = (authorization or "").partition(" ")
@@ -65,7 +83,13 @@ def require_api_access(
 
 @app.get("/health")
 def health(request: Request) -> dict:
-    service: RagService = request.app.state.rag
+    try:
+        service = get_rag_service(request)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "rag_initialization_failed", "type": type(exc).__name__},
+        ) from exc
     return {
         "status": "ok",
         "environment": service.settings.app_env,
@@ -79,9 +103,9 @@ def health(request: Request) -> dict:
 
 @app.post("/chat", dependencies=[Depends(require_api_access)])
 def chat(payload: ChatRequest, request: Request) -> dict:
-    service: RagService = request.app.state.rag
     request_id = str(uuid4())
     try:
+        service = get_rag_service(request)
         response = service.chat(
             payload.message,
             payload.task_id,
@@ -107,7 +131,13 @@ def chat(payload: ChatRequest, request: Request) -> dict:
 
 @app.get("/debug/retrieve", dependencies=[Depends(require_api_access)])
 def debug_retrieve(q: str, request: Request, task_id: str | None = None) -> dict:
-    service: RagService = request.app.state.rag
+    try:
+        service = get_rag_service(request)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "rag_initialization_failed", "type": type(exc).__name__},
+        ) from exc
     if not service.settings.enable_debug_retrieval:
         raise HTTPException(status_code=404, detail="Not found")
     if not q.strip():
