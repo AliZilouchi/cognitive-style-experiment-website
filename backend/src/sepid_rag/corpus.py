@@ -1,4 +1,4 @@
-"""Strict loader for the manually curated, provenance-linked corpus."""
+"""Strict loader for the hybrid, provenance-linked corpus."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def _json(path: Path) -> dict:
 
 
 def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
-    """Validate the 18 originals, then load only curated retrieval units."""
+    """Validate originals and load curated units plus original-source fallbacks."""
 
     root = corpus_root.resolve()
     sources_root = (root / "sources").resolve()
@@ -55,6 +55,7 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         raise ValueError("Allowlist must exactly match the ordered manifest")
 
     source_paths: dict[str, str] = {}
+    source_texts: dict[str, str] = {}
     seen_paths: set[Path] = set()
     for source_id, relative_path in allowed:
         resolved = (root / relative_path).resolve()
@@ -65,6 +66,7 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         if resolved.suffix.lower() != ".md" or not resolved.is_file():
             raise ValueError(f"Invalid allowlisted source: {relative_path}")
         source_paths[source_id] = relative_path
+        source_texts[source_id] = resolved.read_text(encoding="utf-8").strip()
         seen_paths.add(resolved)
 
     if len(source_paths) != manifest.get("source_count"):
@@ -79,7 +81,7 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
 
     documents: list[CorpusDocument] = []
     valid_tasks = {"task_1", "task_2", "task_3"}
-    valid_node_types = {"index", "fact", "comparison"}
+    valid_node_types = {"index", "fact", "comparison", "source"}
     for row in rows:
         source_ids = tuple(row.get("source_ids", []))
         task_ids = tuple(row.get("task_ids", []))
@@ -123,6 +125,35 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
                 relative_path=f"curated/chunks.json#{row['chunk_id']}",
                 text=text_value,
                 retrieval_text=normalize_persian(retrieval_text),
+            )
+        )
+
+    # The curated layer is optimized for predictable overview, fact, and
+    # comparison questions.  The complete allowlisted source layer remains
+    # searchable as a fallback for unusual wording and details that a curated
+    # summary may omit.  Originals are deliberately not rewritten here.
+    source_tasks: dict[str, tuple[str, ...]] = {
+        "S01": ("task_1", "task_2"),
+        **{f"S{i:02d}": ("task_1",) for i in range(2, 5)},
+        **{f"S{i:02d}": ("task_2",) for i in range(5, 11)},
+        **{f"S{i:02d}": ("task_3",) for i in range(11, 19)},
+    }
+    for source_id, relative_path in allowed:
+        text_value = source_texts[source_id]
+        documents.append(
+            CorpusDocument(
+                source_id=source_id,
+                source_ids=(source_id,),
+                chunk_id=f"{source_id}-SOURCE-FALLBACK",
+                task_ids=source_tasks[source_id],
+                node_type="source",
+                topic="original_source",
+                entities=(),
+                coverage_terms=(),
+                parent_ids=(),
+                relative_path=relative_path,
+                text=text_value,
+                retrieval_text=normalize_persian(text_value),
             )
         )
     return documents

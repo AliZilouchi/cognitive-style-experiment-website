@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from .normalization import normalize_persian
 from .prompts import SYSTEM_PROMPT, format_context
 
 
@@ -14,6 +15,53 @@ class RagState(TypedDict, total=False):
     retrieval_query: str
     retrieved: list
     answer: str
+
+
+_FOLLOW_UP_MARKERS = {
+    "آن",
+    "اون",
+    "این",
+    "اینها",
+    "آنها",
+    "بقیه",
+    "همه",
+    "همان",
+    "همین",
+    "نسبت",
+    "دقیقاً",
+    "دقیقا",
+    "کدامشان",
+    "چطور",
+    "چگونه",
+    "چرا",
+}
+
+
+def build_retrieval_query(
+    query: str,
+    history: list[dict[str, str]],
+    known_entities: set[str],
+) -> str:
+    """Resolve short/referential follow-ups without rewriting clear questions."""
+
+    normalized = normalize_persian(query)
+    tokens = set(normalized.split())
+    has_marker = bool(tokens & _FOLLOW_UP_MARKERS)
+    has_named_entity = any(
+        normalize_persian(entity) in normalized for entity in known_entities
+    )
+    is_short_subjectless = len(tokens) <= 6 and not has_named_entity
+    if not history or not (has_marker or is_short_subjectless):
+        return query
+
+    recent = [
+        item.get("content", "").strip()
+        for item in history[-6:]
+        if item.get("role") in {"user", "assistant"} and item.get("content", "").strip()
+    ][-3:]
+    if not recent:
+        return query
+    return "\n".join(["زمینه گفت‌وگوی اخیر:", *recent, "پرسش فعلی:", query])
 
 
 def build_graph(retriever, settings):
@@ -72,9 +120,15 @@ def build_graph(retriever, settings):
         )
 
     def retrieve(state: RagState) -> dict:
-        # Conversation history remains available to the answering model, but it
-        # must not broaden retrieval into unrelated tasks or earlier questions.
-        retrieval_query = state["query"]
+        entities = {
+            entity
+            for document in retriever.documents
+            if state["task_id"] in document.task_ids
+            for entity in document.entities
+        }
+        retrieval_query = build_retrieval_query(
+            state["query"], state.get("history", []), entities
+        )
         return {
             "retrieval_query": retrieval_query,
             "retrieved": retriever.search(retrieval_query, state["task_id"]),
@@ -102,6 +156,7 @@ def build_graph(retriever, settings):
         messages.append(
             HumanMessage(
                 content=(
+                    f"شناسهٔ فعالیت فعلی: {state['task_id']}\n"
                     f"منابع بازیابی‌شده:\n{format_context(results)}\n\n"
                     f"پرسش فعلی کاربر:\n{state['query']}"
                 )

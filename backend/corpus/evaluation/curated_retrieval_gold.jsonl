@@ -1,6 +1,7 @@
 {"task_id":"task_1","query_type":"broad","query":"چه گزینه‌هایی برای اقامت وجود دارد؟","required_chunk_ids":["T1-INDEX-ACCOMMODATION"]}
 {"task_id":"task_1","query_type":"entity","query":"ظرفیت و شرایط رزرو هتل صدف چیست؟","required_chunk_ids":["T1-FACT-HOTEL-SADAF"]}
 {"task_id":"task_1","query_type":"comparison","query":"قیمت و ظرفیت همه اقامتگاه‌ها را مقایسه کن.","required_chunk_ids":["T1-COMPARE-COST-CAPACITY"]}
+{"task_id":"task_1","query_type":"broad_multi_part","query":"گزینه‌های اقامت را همراه با ویژگی‌هایشان معرفی کن و یک مقایسه کلی انجام بده.","required_chunk_ids":["T1-INDEX-ACCOMMODATION","T1-COMPARE-COST-CAPACITY","T1-COMPARE-RULES"]}
 {"task_id":"task_2","query_type":"broad","query":"سه بازه سفر جزیره چه نام دارند؟","required_chunk_ids":["T2-INDEX-PERIODS"]}
 {"task_id":"task_2","query_type":"comparison","query":"هوای سه بازه سفر چه تفاوتی دارد؟","required_chunk_ids":["T2-COMPARE-WEATHER"]}
 {"task_id":"task_2","query_type":"comparison","query":"هزینه سفر در سه بازه را مقایسه کن.","required_chunk_ids":["T2-COMPARE-COST"]}

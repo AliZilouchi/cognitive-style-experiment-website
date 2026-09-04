@@ -118,7 +118,10 @@ class CorpusRetriever:
         comparison_anchors = [
             index for index in anchors if self.documents[index].node_type == "comparison"
         ]
-        if len(comparison_anchors) >= 2:
+        # When comparison anchors alone fill the retrieval budget (for example
+        # weather + cost + attractions), prefer them over a thin index.  When
+        # room remains, retain the index because it provides entity coverage.
+        if len(comparison_anchors) >= self.top_k:
             anchors = [
                 index for index in anchors if self.documents[index].node_type != "index"
             ]

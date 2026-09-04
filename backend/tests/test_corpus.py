@@ -11,15 +11,27 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertEqual(len(documents), 54)
+        self.assertEqual(len(documents), 72)
         self.assertEqual(
             {source_id for item in documents for source_id in item.source_ids},
             {f"S{i:02d}" for i in range(1, 19)},
         )
         self.assertEqual(len({item.chunk_id for item in documents}), len(documents))
         self.assertTrue(all(item.task_ids for item in documents))
-        self.assertTrue(all(item.node_type in {"index", "fact", "comparison"} for item in documents))
+        self.assertTrue(
+            all(item.node_type in {"index", "fact", "comparison", "source"} for item in documents)
+        )
         self.assertTrue(all("evaluation/" not in item.relative_path for item in documents))
+
+    def test_all_original_sources_are_available_as_fallbacks(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        fallback = [item for item in documents if item.node_type == "source"]
+        self.assertEqual(len(fallback), 18)
+        self.assertEqual(
+            {item.source_id for item in fallback},
+            {f"S{i:02d}" for i in range(1, 19)},
+        )
+        self.assertTrue(all(item.text.startswith("# ") for item in fallback))
 
     def test_task_scope_matches_the_three_swts_tasks(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")

@@ -1,4 +1,22 @@
-# Curated knowledge-map release 0.6.0
+# Hybrid conversational-search release 0.7.0
+
+## Behavioural target
+
+- Simple questions receive short direct answers.
+- Explicit broad or multi-part questions receive complete, structured answers.
+- Search, explanation, calculation, synthesis, and neutral comparison remain available.
+- Activity 2's final subjective selection and Activity 3's ready-to-submit guide remain participant work.
+- Short referential follow-ups are retrieved with their recent conversational subject.
+
+## Retrieval revision
+
+- 54 curated index/fact/comparison units remain the preferred layer.
+- All 18 validated original documents are now available as semantic fallbacks.
+- Broad accommodation requests deterministically receive the complete overview,
+  cost/capacity comparison, and rules comparison within `TOP_K=3`.
+- API and package version: 0.7.0; prompt version: `sepid-fa-rag-v5`.
+
+## Previous curated release 0.6.0
 
 ## Retrieval revision
 

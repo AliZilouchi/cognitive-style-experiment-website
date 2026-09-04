@@ -2,7 +2,7 @@
 
 A portable, controlled RAG backend for the three Sepid Island Search-as-Learning tasks. The same source code runs in Vercel, Docker, Colab, and local development.
 
-The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The 18 original sources remain unchanged and are represented by 54 manually curated index, fact, and comparison units with explicit provenance. Retrieval is limited to the active SWTS task and returns up to three diverse units. Deterministic coverage anchors protect broad list and comparison questions from missing whole categories. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
+The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-large` embeddings and `openai/gpt-4o-mini` for grounded Persian generation. The hybrid index contains 54 manually curated index, fact, and comparison units plus the complete 18 original documents as semantic fallbacks. Retrieval is limited to the active SWTS task and returns up to three diverse units. Deterministic coverage anchors protect broad list and comparison questions from missing whole categories, while contextual query resolution preserves the subject of short follow-ups. No local embedding model is required. See the root `VERCEL_DEPLOYMENT.md` for exact steps.
 
 ## What is already implemented
 
@@ -14,11 +14,12 @@ The Vercel-ready release uses OpenRouter for hosted `intfloat/multilingual-e5-la
 - Strict validation of hosted vector count and the frozen 1024 dimension
 - A clearly marked deterministic hashing backend for plumbing tests only
 - Task-scoped cosine/MMR retrieval with a reproducible index cache
-- Minimal LangGraph flow: retrieve, then answer
+- Minimal LangGraph flow with contextual follow-up resolution, retrieval, then answer
 - Together chat through LangChain's `ChatTogether`
 - Groq chat through LangChain's `ChatGroq`
 - OpenRouter chat and embeddings through its OpenAI-compatible API
-- A Persian grounded-answer prompt with source identifiers
+- A Persian proportional-answer policy that permits complete search, explanation,
+  calculation, and comparison while withholding only ready-to-submit final task products
 - FastAPI `/health`, `/chat`, and development-only `/debug/retrieve` endpoints
 - Retrieval evaluation using all gold queries, including the exact three SWTS prompts
 - Vercel FastAPI entrypoint, Colab starter notebook, Docker fallback, and tests
