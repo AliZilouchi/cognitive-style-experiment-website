@@ -8,7 +8,10 @@ This package changes the three SWTS tasks from final-answer assignments into con
 - Distinct task problems and objectives for factual exploration, comparison, and integrated understanding
 - Task-specific short closing reflections instead of deliverable-style final answers
 - Updated pre-task, post-task, comparative, Think Aloud, chat, preview, and researcher-dashboard wording
-- Progressive-disclosure RAG policy shared by all task IDs
+- Grounded progressive-disclosure RAG policy shared by all task IDs
+- Explicit prevention of transferring general facts to unsupported specific cases
+- Clear separation of sourced facts from cautious inference
+- No assistant-authored suggestions for the participant's next question
 - Deterministic clarification for plainly incomplete messages
 - SWTS version `sepid-island-fa-swts-v2`
 
