@@ -10,7 +10,12 @@ from sepid_rag.prompts import (
     VERIFIER_PROMPT,
     VERIFIER_PROMPT_VERSION,
 )
-from sepid_rag.task_contexts import TASK_CONTEXT_VERSION, format_task_context
+from sepid_rag.task_contexts import (
+    TASK_CONTEXT_VERSION,
+    classify_task_relevance,
+    format_task_context,
+    task_reminder,
+)
 
 
 class ConversationPolicyTests(unittest.TestCase):
@@ -51,6 +56,25 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("همه موضوع‌های موجود", context)
         self.assertIn("هیچ هدف فعالیتی", context)
         self.assertNotIn("سیاست مرزبندی", context)
+
+    def test_task_topic_relevance_is_deterministic(self):
+        self.assertEqual(
+            classify_task_relevance("task_2", ("travel_periods",)),
+            "core",
+        )
+        self.assertEqual(
+            classify_task_relevance("task_2", ("transport_access",)),
+            "adjacent",
+        )
+        self.assertEqual(
+            classify_task_relevance("task_2", ("society_governance",)),
+            "outside_task",
+        )
+        self.assertEqual(
+            classify_task_relevance("free_chat", ("society_governance",)),
+            "free_chat",
+        )
+        self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
         self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v1")

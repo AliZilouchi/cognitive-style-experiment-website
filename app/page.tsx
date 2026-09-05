@@ -19,7 +19,7 @@ import {
 type Language = "en" | "fa";
 type Stage = "entry" | "introduction" | "demographics" | "test" | "think_aloud" | "pre_task" | "swts" | "post_task" | "comparative" | "complete";
 type ParticipantSession = { session_id: string; participant_id: string; recovery_token: string; phase: Stage };
-type PendingEvent = { id: string; sequence: number; type: string; payload: Record<string, unknown>; createdAt: string };
+type PendingEvent = { id: string; sessionId?: string; sequence: number; type: string; payload: Record<string, unknown>; createdAt: string };
 type TimingState = "intro" | "ready" | "responding" | "result";
 type EcsaScreen = "overview" | "instructions" | "ready" | "trial" | "feedback" | "complete";
 type StimulusStatus = "buffering" | "ready" | "visible" | "error";
@@ -102,6 +102,9 @@ const copy = {
     restart: "Return to entry",
     connection: "Online",
     recovering: "Restoring session…",
+    anotherParticipant: "Enter a new invitation code",
+    preparingNextParticipant: "Saving the completed session…",
+    nextParticipantBlocked: "The completed session still has unsaved records. Reconnect and try again.",
   },
   fa: {
     brand: "پژوهش تعامل با اطلاعات",
@@ -176,6 +179,9 @@ const copy = {
     restart: "بازگشت به ورودی",
     connection: "متصل",
     recovering: "در حال بازیابی جلسه…",
+    anotherParticipant: "ورود شرکت‌کننده جدید با کد دعوت تازه",
+    preparingNextParticipant: "در حال ذخیره نهایی جلسه…",
+    nextParticipantBlocked: "هنوز بخشی از جلسه قبلی ذخیره نشده است. پس از اتصال دوباره تلاش کنید.",
   },
 };
 
@@ -199,6 +205,8 @@ export default function Home() {
   const [taskOrder, setTaskOrder] = useState<SwtsTaskId[]>(SWTS_TASK_IDS);
   const [completedTask, setCompletedTask] = useState<{ taskId: SwtsTaskId; position: number } | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [resettingSession, setResettingSession] = useState(false);
+  const [resetSessionError, setResetSessionError] = useState("");
   const [timingState, setTimingState] = useState<TimingState>("intro");
   const [trialStart, setTrialStart] = useState(0);
   const [reactionTime, setReactionTime] = useState<number | null>(null);
@@ -337,7 +345,10 @@ export default function Home() {
 
   async function flushEvents(active: ParticipantSession) {
     const queue = readQueue();
-    for (const item of queue) {
+    const activeItems = queue.filter(
+      (item) => !item.sessionId || item.sessionId === active.session_id,
+    );
+    for (const item of activeItems) {
       try {
         const response = await rpc("save_participant_event", {
           p_session_id: active.session_id, p_recovery_token: active.recovery_token,
@@ -359,7 +370,7 @@ export default function Home() {
     }
     const next: ParticipantSession = { ...session, phase: nextStage };
     const queue = readQueue();
-    queue.push({ id: crypto.randomUUID(), sequence: (Date.now() * 1000) + Math.floor(Math.random() * 1000), type, payload: { ...payload, phase: nextStage }, createdAt: new Date().toISOString() });
+    queue.push({ id: crypto.randomUUID(), sessionId: session.session_id, sequence: (Date.now() * 1000) + Math.floor(Math.random() * 1000), type, payload: { ...payload, phase: nextStage }, createdAt: new Date().toISOString() });
     window.localStorage.setItem("study-pending-events", JSON.stringify(queue));
     window.localStorage.setItem("study-participant-session", JSON.stringify(next));
     setSession(next);
@@ -446,6 +457,51 @@ export default function Home() {
     setSession(null);
     setStage("entry");
     setAdminMode(true);
+  }
+
+  async function startAnotherParticipant() {
+    if (!session || previewMode || resettingSession) return;
+    setResetSessionError("");
+    setResettingSession(true);
+    if (navigator.onLine) await flushEvents(session);
+    const pendingForSession = readQueue().some(
+      (item) => !item.sessionId || item.sessionId === session.session_id,
+    );
+    if (pendingForSession) {
+      setResetSessionError(t.nextParticipantBlocked);
+      setResettingSession(false);
+      return;
+    }
+
+    const openedPrefix = `study-swts-opened:${session.session_id}:`;
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(openedPrefix)) window.localStorage.removeItem(key);
+    }
+    window.localStorage.removeItem("study-participant-session");
+    window.localStorage.removeItem("study-ecsa-run");
+    window.localStorage.removeItem("study-swts-current");
+    window.localStorage.removeItem("study-swts-completed-task");
+
+    setSession(null);
+    setCode("");
+    setError("");
+    setConsent(false);
+    setCurrentTaskId("task_1");
+    setCurrentTaskPosition(0);
+    setTaskOrder(SWTS_TASK_IDS);
+    setCompletedTask(null);
+    setEcsaIndex(0);
+    setEcsaResponses([]);
+    setEcsaScreen("overview");
+    setEcsaFeedback(null);
+    setEcsaSelectedAnswer(null);
+    setTimingState("intro");
+    setReactionTime(null);
+    setPageHidden(false);
+    setFocusLostCount(0);
+    setStage("entry");
+    setResettingSession(false);
   }
 
   function jumpPreview(nextStage: Stage) {
@@ -738,7 +794,7 @@ export default function Home() {
             {stage === "swts" && session && <ExperimentSwtsChat key={previewMode ? `preview-${currentTaskId}-${currentTaskPosition}` : `experiment-${session.session_id}`} session={session} mode={previewMode ? "preview" : "experiment"} previewTaskId={currentTaskId} previewPosition={currentTaskPosition} previewOrder={taskOrder} simulateRagFailure={previewRagFailure} onTaskLoaded={handleTaskLoaded} onTaskComplete={handleTaskComplete} />}
             {stage === "post_task" && completedTask && <PostTaskForm key={`${completedTask.taskId}-${completedTask.position}`} taskId={completedTask.taskId} position={completedTask.position} onSubmit={(responses) => continueAfterPostTask(responses)} />}
             {stage === "comparative" && <ComparativeForm taskOrder={taskOrder} onSubmit={(responses) => recordEvent("final_comparative_submitted", { version: "final-comparative-fa-v1", task_order: taskOrder, responses }, "complete")} />}
-            {stage === "complete" && <div className="study-complete"><span>✓</span><p className="card-kicker">پایان مطالعه</p><h2>از همراهی شما سپاسگزاریم</h2><p>تمام بخش‌ها کامل شدند. لطفاً این صفحه را باز نگه دارید و به پژوهشگر اطلاع دهید.</p>{previewMode && <button className="primary" onClick={leavePreview}>بازگشت به داشبورد پژوهشگر</button>}</div>}
+            {stage === "complete" && <div className="study-complete"><span>✓</span><p className="card-kicker">پایان مطالعه</p><h2>از همراهی شما سپاسگزاریم</h2><p>تمام بخش‌ها کامل شدند. لطفاً به پژوهشگر اطلاع دهید.</p>{previewMode ? <button className="primary" onClick={leavePreview}>بازگشت به داشبورد پژوهشگر</button> : <><button className="primary" disabled={resettingSession} onClick={() => void startAnotherParticipant()}>{resettingSession ? t.preparingNextParticipant : t.anotherParticipant}</button>{resetSessionError && <p className="error" role="alert">{resetSessionError}</p>}</>}</div>}
           </section>
         )}
       </section>}

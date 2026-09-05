@@ -40,6 +40,11 @@ export type RagChatResponse = {
     query: string;
   };
   prompt_version: string;
+  knowledge_scope?: {
+    version: string;
+    classification: "supported" | "outside_world" | "unknown_topic" | "unknown";
+    task_relevance?: "core" | "adjacent" | "outside_task" | "free_chat" | "unknown";
+  };
   verification?: {
     enabled: boolean;
     status:
@@ -63,6 +68,7 @@ export type RagHealthResponse = {
   embedding_model: string;
   llm_provider: string;
   response_verifier?: boolean;
+  knowledge_scope_version?: string;
 };
 
 export class RagRequestError extends Error {

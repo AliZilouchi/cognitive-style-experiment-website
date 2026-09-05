@@ -99,6 +99,7 @@ def health(request: Request) -> dict:
         "embedding_model": service.retriever.embeddings.model_identity,
         "llm_provider": service.settings.llm_provider,
         "response_verifier": service.settings.enable_response_verifier,
+        "knowledge_scope_version": service.knowledge_scope.version,
     }
 
 

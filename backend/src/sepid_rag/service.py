@@ -8,6 +8,7 @@ from .config import Settings
 from .corpus import load_allowlisted_corpus
 from .embeddings import create_embeddings
 from .graph import build_graph
+from .knowledge_scope import KnowledgeScope
 from .prompts import SYSTEM_PROMPT_VERSION, VERIFIER_PROMPT_VERSION
 from .retriever import CorpusRetriever
 
@@ -17,11 +18,13 @@ class RagService:
     settings: Settings
     retriever: CorpusRetriever
     graph: object
+    knowledge_scope: KnowledgeScope
 
     @classmethod
     def create(cls, settings: Settings | None = None) -> "RagService":
         resolved = settings or Settings.from_env()
         documents = load_allowlisted_corpus(resolved.corpus_root)
+        knowledge_scope = KnowledgeScope.load(resolved.corpus_root)
         embeddings = create_embeddings(resolved)
         retriever = CorpusRetriever(
             documents,
@@ -32,7 +35,12 @@ class RagService:
             max_chunks_per_source=resolved.max_chunks_per_source,
             mmr_lambda=resolved.mmr_lambda,
         )
-        return cls(resolved, retriever, build_graph(retriever, resolved))
+        return cls(
+            resolved,
+            retriever,
+            build_graph(retriever, resolved, knowledge_scope),
+            knowledge_scope,
+        )
 
     def chat(
         self,
@@ -70,6 +78,11 @@ class RagService:
                 "query": result["retrieval_query"],
             },
             "prompt_version": SYSTEM_PROMPT_VERSION,
+            "knowledge_scope": {
+                "version": self.knowledge_scope.version,
+                "classification": result.get("knowledge_classification", "unknown"),
+                "task_relevance": result.get("task_relevance", "unknown"),
+            },
             "verification": {
                 "enabled": self.settings.enable_response_verifier,
                 "status": result.get("verification_status", "unknown"),

@@ -1,0 +1,48 @@
+{
+  "version": "sepid-knowledge-scope-v1",
+  "outside_world_response": "متأسفانه اطلاعاتی در خصوص این مورد از جزیره سپید در دسترس نیست.",
+  "not_documented_response": "جزئیات این مورد در اطلاعات موجود درباره جزیره سپید مشخص نشده است.",
+  "topics": [
+    {"id":"overview","aliases":["جزیره سپید","شرایط جزیره","زندگی در جزیره","محله","جغرافیا","جمعیت","مردم جزیره"]},
+    {"id":"accommodation","aliases":["اقامت","اقامتگاه","هتل","مهمان خانه","خانه مسافر","کلبه","اردوگاه","چادر","صبحانه","حمام","آشپزخانه","نظافت","رزرو","بیعانه","مجوز اقامت"]},
+    {"id":"travel_periods","aliases":["زمان سفر","بازه سفر","فصل","ماه","آب و هوا","هوا","دما","باران","باد","شلوغ","خلوت","هزینه سفر"]},
+    {"id":"attractions","aliases":["جاذبه","دیدنی","تفریح","فعالیت","طبیعت گردی","قایق سواری","شنا","موزه","بازار","آبشار","تالاب","باغ","ساحل","جنگل"]},
+    {"id":"transport_access","aliases":["رسیدن","ورود","خروج","فرودگاه","پرواز","شناور","کشتی","اسکله","مینی بوس","حمل و نقل","رفت و آمد","مسیر","فاصله"]},
+    {"id":"food_services","aliases":["غذا","رستوران","ناهار","شام","خوراک","خرید","فروشگاه","داروخانه","خدمات عمومی","اینترنت","برق","آب شیرین"]},
+    {"id":"language_culture","aliases":["زبان","فارسی","سپیدی","ارتباط با بومیان","بومیان","فرهنگ","رسم","رسوم","آیین","باور","اعتقاد","اسطوره","قهرمان","نشانه","نماد","قصه","تعامل محترمانه","حریم","عکاسی","هدیه"]},
+    {"id":"society_governance","aliases":["جامعه","قشر","طبقه","شغل","معیشت","مهاجرت","سکونت دائم","اقامت دائم","شورا","سیاسی","سیاست","انتخابات","اداره جزیره","حکومت"]},
+    {"id":"health_safety","aliases":["درمان","درمانی","پزشکی","پزشک","بیمار","بیمارستان","اورژانس","حادثه","امنیت","ایمنی","جرم","خطر","امداد"]},
+    {"id":"visitor_feedback","aliases":["نظر مسافر","نظرخواهی","نظرسنجی","بازخورد","رضایت","تجربه مسافران"]}
+  ],
+  "outside_world_indicators": [
+    "دانشگاه", "مدرسه عالی", "بانک", "بورس", "ارز دیجیتال", "کارخانه", "صنعت سنگین",
+    "ارتش", "جنگ", "سفارت", "روابط بین الملل", "پاسپورت جزیره", "تیم فوتبال",
+    "شبکه تلویزیونی", "اپلیکیشن تاکسی", "مترو", "راه آهن"
+  ],
+  "calculation_indicators": [
+    "حساب کن", "محاسبه کن", "هزینه دقیق", "بودجه", "جمع کل", "مجموع هزینه", "ضربدر", "تقسیم بر", "چقدر میشه", "چقدر می شود"
+  ],
+  "calculation_policy": "قیمت‌ها و ظرفیت‌های مستند را می‌توانید نقل یا به صورت ساده مقایسه کنید، اما بودجه نهایی، هزینه چندروزه یا چندواحدی و افزایش یا تخفیف فرضی را محاسبه نکنید. توضیح دهید که مبلغ دقیق به فرض‌های ثبت‌نشده وابسته است و فقط داده‌های پایه موجود را ارائه کنید.",
+  "closed_world": {
+    "accommodation_services": {
+      "rule": "این جدول برای ویژگی‌های فهرست‌شده کامل است. مقدار false یعنی آن خدمت ارائه نمی‌شود؛ نبودن یک ویژگی خارج از این فهرست همچنان به معنی نامشخص‌بودن است.",
+      "service_labels": {
+        "breakfast": "صبحانه",
+        "lunch": "ناهار",
+        "dinner": "شام",
+        "private_bathroom": "حمام اختصاصی",
+        "full_kitchen": "آشپزخانه کامل",
+        "small_kitchen": "آشپزخانه کوچک",
+        "food_reheating": "فضای گرم‌کردن غذا",
+        "daily_cleaning": "نظافت روزانه"
+      },
+      "entities": {
+        "هتل صدف": {"breakfast":true,"lunch":false,"dinner":false,"private_bathroom":true,"full_kitchen":false,"small_kitchen":false,"food_reheating":false,"daily_cleaning":true},
+        "مهمان خانه موج": {"breakfast":false,"lunch":false,"dinner":false,"private_bathroom":false,"full_kitchen":true,"small_kitchen":false,"food_reheating":true,"daily_cleaning":false},
+        "خانه مسافر فانوس": {"breakfast":false,"lunch":false,"dinner":false,"private_bathroom":true,"full_kitchen":false,"small_kitchen":true,"food_reheating":true,"daily_cleaning":false},
+        "کلبه های نارون": {"breakfast":"paid_optional","lunch":false,"dinner":false,"private_bathroom":true,"full_kitchen":false,"small_kitchen":false,"food_reheating":true,"daily_cleaning":false},
+        "اردوگاه چشمه": {"breakfast":false,"lunch":false,"dinner":false,"private_bathroom":false,"full_kitchen":false,"small_kitchen":false,"food_reheating":true,"daily_cleaning":false}
+      }
+    }
+  }
+}

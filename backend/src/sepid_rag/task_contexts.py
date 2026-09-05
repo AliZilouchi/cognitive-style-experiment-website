@@ -33,6 +33,47 @@ TASK_CONTEXTS = {
     },
 }
 
+TASK_TOPIC_SCOPE = {
+    "task_1": {
+        "core": {"accommodation"},
+        "adjacent": {"transport_access", "food_services"},
+    },
+    "task_2": {
+        "core": {"travel_periods", "attractions"},
+        "adjacent": {"transport_access", "accommodation"},
+    },
+    "task_3": {
+        "core": {"language_culture"},
+        "adjacent": {
+            "overview",
+            "society_governance",
+            "health_safety",
+            "visitor_feedback",
+        },
+    },
+}
+
+
+def classify_task_relevance(task_id: str, topic_ids: tuple[str, ...]) -> str:
+    """Classify topic relevance consistently instead of asking the LLM to guess."""
+
+    scope = TASK_TOPIC_SCOPE.get(task_id)
+    if scope is None:
+        return "free_chat"
+    topics = set(topic_ids)
+    if topics & scope["core"]:
+        return "core"
+    if topics & scope["adjacent"]:
+        return "adjacent"
+    return "outside_task"
+
+
+def task_reminder(task_id: str) -> str:
+    task = TASK_CONTEXTS.get(task_id)
+    if task is None:
+        return ""
+    return f"یادآوری: موضوع فعالیت فعلی «{task['title']}» است."
+
 
 def format_task_context(task_id: str) -> str:
     """Return neutral scope guidance; free chat intentionally has no task boundary."""

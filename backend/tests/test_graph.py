@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from sepid_rag.graph import build_graph, build_retrieval_query, retrieval_scope_for_task
+from sepid_rag.knowledge_scope import KnowledgeScope
 
 
 class _Message:
@@ -134,7 +135,19 @@ class RetrievalQueryTests(unittest.TestCase):
         )
         _FakeChat.calls = []
         with patch.dict(sys.modules, modules):
-            graph = build_graph(_Retriever(), settings)
+            knowledge_scope = KnowledgeScope(
+                {
+                    "version": "test-scope",
+                    "outside_world_response": "در دسترس نیست.",
+                    "not_documented_response": "مشخص نشده است.",
+                    "topics": [{"id": "transport", "aliases": ["رسیدن", "جزیره"]}],
+                    "outside_world_indicators": ["بورس"],
+                    "calculation_indicators": ["حساب کن"],
+                    "calculation_policy": "محاسبه نکن.",
+                    "closed_world": {},
+                }
+            )
+            graph = build_graph(_Retriever(), settings, knowledge_scope)
             result = graph.invoke(
                 {"query": "چطور به جزیره برسیم؟", "task_id": "free_chat", "history": []}
             )
