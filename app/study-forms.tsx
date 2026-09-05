@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useMemo, useState } from "react";
-import { SWTS_TASKS, SwtsTaskId } from "./swts-config";
+import { SWTS_COMMON_CONTEXT, SWTS_COMMON_CONVERSATION_INSTRUCTION, SWTS_TASKS, SwtsTaskId } from "./swts-config";
 
 export type DemographicResponses = {
   age_range: string;
@@ -129,7 +129,7 @@ export function ThinkAloudPage({ onContinue }: { onContinue: () => void | Promis
         <li>درباره پاسخ سامانه چه فکری می‌کنید؛</li>
         <li>چه اطلاعاتی برای شما مفید، نامرتبط، ناقص یا مشکوک به نظر می‌رسد؛</li>
         <li>چگونه تصمیم می‌گیرید پرسش بعدی شما چه باشد؛</li>
-        <li>چگونه اطلاعات را برای پاسخ نهایی خود انتخاب و مرتب می‌کنید؛</li>
+        <li>چگونه اطلاعات تازه را با پاسخ‌های قبلی مرتبط می‌کنید و تصمیم می‌گیرید چه چیزی را بیشتر بررسی کنید؛</li>
         <li>در هر مرحله چه احساسی دارید، مانند اطمینان، تردید، سردرگمی یا رضایت.</li>
       </ul>
     </div>
@@ -156,11 +156,11 @@ export function PreTaskForm({ taskId, position, onSubmit }: { taskId: SwtsTaskId
   }
   return <form className="study-form" onSubmit={submit} dir="rtl">
     <FormIntro eyebrow={`وظیفه ${position + 1} از 3 · ${task.title}`} title="بررسی درک وظیفه">
-      پیش از شروع گفت‌وگو، متن وظیفه را بخوانید و مطمئن شوید که می‌دانید در پایان چه پاسخی باید ارائه دهید.
+      پیش از شروع گفت‌وگو، موقعیت و هدف این وظیفه را بخوانید و مطمئن شوید که می‌دانید قرار است چه موضوعی را بررسی کنید.
     </FormIntro>
-    <div className="task-brief-card"><span>متن وظیفه</span><h3>{task.title}</h3><p>{task.prompt}</p><small>{task.requiredResponse}</small></div>
-    <ChoiceQuestion number={1} title="تا چه اندازه مطمئن هستید که هدف این وظیفه و پاسخ نهایی مورد انتظار را درک کرده‌اید؟" value={confidence} onChange={setConfidence} options={[["not_at_all","اصلاً مطمئن نیستم"],["slightly","کمی مطمئن هستم"],["somewhat","تا حدی مطمئن هستم"],["confident","مطمئن هستم"],["completely","کاملاً مطمئن هستم"]]} />
-    <TextQuestion number={2} title="لطفاً در یک یا دو جمله بنویسید که در پایان این وظیفه باید چه چیزی ارائه دهید." value={summary} onChange={setSummary} multiline />
+    <div className="task-brief-card"><span>زمینه مشترک</span><p>{SWTS_COMMON_CONTEXT}</p><h3>{task.title}</h3><p>{task.problem}</p><strong>هدف گفت‌وگو</strong><p>{task.objective}</p><small>{SWTS_COMMON_CONVERSATION_INSTRUCTION}</small></div>
+    <ChoiceQuestion number={1} title="تا چه اندازه مطمئن هستید که موقعیت و هدف این گفت‌وگو را درک کرده‌اید؟" value={confidence} onChange={setConfidence} options={[["not_at_all","اصلاً مطمئن نیستم"],["slightly","کمی مطمئن هستم"],["somewhat","تا حدی مطمئن هستم"],["confident","مطمئن هستم"],["completely","کاملاً مطمئن هستم"]]} />
+    <TextQuestion number={2} title="لطفاً در یک یا دو جمله بنویسید که در این گفت‌وگو قرار است چه موضوعی را بررسی کنید." value={summary} onChange={setSummary} multiline />
     <fieldset className="form-question readiness-question"><legend><span>3.</span> آیا برای شروع وظیفه آماده هستید؟</legend><label className={ready ? "choice-card selected" : "choice-card"}><input type="checkbox" checked={ready} onChange={(event) => setReady(event.target.checked)} /><span><strong>بله، آماده‌ام.</strong><small>ادامه فقط پس از این تأیید ممکن است.</small></span></label>{!ready && <p className="field-hint">اگر بخشی از دستورالعمل روشن نیست، پیش از ادامه از پژوهشگر بخواهید فقط همان دستورالعمل را توضیح دهد.</p>}</fieldset>
     <FormActions busy={busy} disabled={!complete} label="شروع وظیفه" />
   </form>;
@@ -170,11 +170,11 @@ export function PostTaskForm({ taskId, position, onSubmit }: { taskId: SwtsTaskI
   const [values, setValues] = useState<number[]>([0,0,0,0,0]);
   const [busy, setBusy] = useState(false);
   const questions = [
-    "هدف وظیفه و پاسخ نهایی مورد انتظار برای من روشن بود.",
-    "تکمیل این وظیفه برای من دشوار بود.",
-    "انجام این وظیفه به تلاش ذهنی زیادی نیاز داشت.",
+    "موقعیت و هدف گفت‌وگو برای من روشن بود.",
+    "بررسی این موضوع برای من دشوار بود.",
+    "این گفت‌وگو به تلاش ذهنی زیادی نیاز داشت.",
     "از نحوه تعامل با سامانه در این وظیفه رضایت داشتم.",
-    "از پاسخ خود برای این وظیفه رضایت داشتم.",
+    "در پایان گفت‌وگو احساس می‌کردم موضوع را به اندازه کافی درک کرده‌ام.",
   ];
   const complete = values.every(Boolean);
   async function submit(event: FormEvent) {
@@ -196,7 +196,7 @@ export function ComparativeForm({ taskOrder, onSubmit }: { taskOrder: SwtsTaskId
   const [choices, setChoices] = useState(["", "", "", ""]);
   const [ratings, setRatings] = useState([0,0,0]);
   const [busy, setBusy] = useState(false);
-  const choiceQuestions = ["کدام وظیفه برای شما دشوارتر بود؟","کدام وظیفه به بیشترین تلاش ذهنی نیاز داشت؟","در کدام وظیفه سامانه بیشترین کمک را به شما کرد؟","در کدام وظیفه به پاسخ نهایی خود اطمینان بیشتری داشتید؟"];
+  const choiceQuestions = ["کدام وظیفه برای شما دشوارتر بود؟","کدام وظیفه به بیشترین تلاش ذهنی نیاز داشت؟","در کدام وظیفه سامانه بیشترین کمک را به شما کرد؟","در پایان کدام وظیفه احساس می‌کردید به درک روشن‌تری از موضوع رسیده‌اید؟"];
   const ratingQuestions = ["پس از انجام سه وظیفه، نحوه استفاده از سامانه را به‌خوبی درک کرده‌ام.","کار با سامانه برای من آسان بود.","در مجموع، از تجربه استفاده از سامانه رضایت داشتم."];
   const complete = choices.every(Boolean) && ratings.every(Boolean);
   async function submit(event: FormEvent) {

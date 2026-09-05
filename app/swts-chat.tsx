@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SUPABASE_KEY, SUPABASE_URL } from "./runtime-config";
 import { checkRagHealth, RagHistoryItem, RagRequestError, RagTaskId, sendRagMessage, toParticipantAnswer } from "./rag-client";
-import { SWTS_COMMON_CONTEXT, SWTS_TASK_IDS, SWTS_TASKS, SWTS_TIME_LIMIT_SECONDS, SwtsTaskId } from "./swts-config";
+import { SWTS_COMMON_CONTEXT, SWTS_COMMON_CONVERSATION_INSTRUCTION, SWTS_TASK_IDS, SWTS_TASKS, SWTS_TIME_LIMIT_SECONDS, SwtsTaskId } from "./swts-config";
 
 export type ParticipantSession = { session_id: string; participant_id: string; recovery_token: string };
 export type SwtsTaskMeta = { taskId: SwtsTaskId; position: number; order: SwtsTaskId[] };
@@ -106,7 +106,7 @@ export function ExperimentSwtsChat({
   previewOrder?: SwtsTaskId[];
   simulateRagFailure?: boolean;
   onTaskLoaded?: (meta: SwtsTaskMeta) => void;
-  onTaskComplete?: (meta: SwtsTaskMeta & { finalResponse: string; completed: boolean }) => void | Promise<void>;
+  onTaskComplete?: (meta: SwtsTaskMeta & { closingReflection: string; completed: boolean }) => void | Promise<void>;
 }) {
   const [state, setState] = useState<SwtsState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +118,7 @@ export function ExperimentSwtsChat({
   const [error, setError] = useState("");
   const [lastFailedAttemptId, setLastFailedAttemptId] = useState<string | null>(null);
   const [pendingFinish, setPendingFinish] = useState<PendingFinish | null>(null);
-  const [finalResponse, setFinalResponse] = useState("");
+  const [closingReflection, setClosingReflection] = useState("");
   const [submittingFinal, setSubmittingFinal] = useState(false);
   const [remaining, setRemaining] = useState(SWTS_TIME_LIMIT_SECONDS);
   const messagesEnd = useRef<HTMLDivElement | null>(null);
@@ -126,8 +126,8 @@ export function ExperimentSwtsChat({
 
   const messages = useMemo(() => successfulMessages(state?.exchanges || []), [state]);
   const currentTask = state?.task_id ? SWTS_TASKS[state.task_id] : null;
-  const currentWords = wordCount(finalResponse);
-  const finalTooLong = Boolean(currentTask?.maxWords && currentWords > currentTask.maxWords);
+  const reflectionWords = wordCount(closingReflection);
+  const reflectionTooLong = Boolean(currentTask && reflectionWords > currentTask.maxReflectionWords);
 
   useEffect(() => { onTaskLoadedRef.current = onTaskLoaded; }, [onTaskLoaded]);
 
@@ -166,7 +166,7 @@ export function ExperimentSwtsChat({
         next_sequence: 1,
       } : await loadParticipantSwtsState(session);
       setState(result);
-      setFinalResponse("");
+      setClosingReflection("");
       setRemaining(SWTS_TIME_LIMIT_SECONDS);
       if (result.task_id) onTaskLoadedRef.current?.({ taskId: result.task_id, position: result.current_position, order: result.task_order });
       setLoading(false);
@@ -250,22 +250,22 @@ export function ExperimentSwtsChat({
     if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); }
   }
 
-  async function submitFinal(event: FormEvent) {
+  async function submitReflection(event: FormEvent) {
     event.preventDefault();
-    if (!state?.task_id || !finalResponse.trim() || finalTooLong || pendingFinish) return;
+    if (!state?.task_id || !closingReflection.trim() || reflectionTooLong || pendingFinish) return;
     setSubmittingFinal(true);
     setError("");
-    const meta = { taskId: state.task_id, position: state.current_position, order: state.task_order, finalResponse: finalResponse.trim(), completed: state.current_position >= 2 };
+    const meta = { taskId: state.task_id, position: state.current_position, order: state.task_order, closingReflection: closingReflection.trim(), completed: state.current_position >= 2 };
     try {
       if (mode === "experiment") await participantRpc("submit_swts_task_v2", {
         p_session_id: session.session_id,
         p_recovery_token: session.recovery_token,
         p_task_id: state.task_id,
-        p_final_response: finalResponse.trim(),
+        p_final_response: closingReflection.trim(),
         p_client_submitted_at: new Date().toISOString(),
       });
       await onTaskComplete?.(meta);
-    } catch { setError("پاسخ نهایی ثبت نشد. متن شما حفظ شده است؛ دوباره تلاش کنید."); }
+    } catch { setError("برداشت پایانی ثبت نشد. متن شما حفظ شده است؛ دوباره تلاش کنید."); }
     finally { setSubmittingFinal(false); }
   }
 
@@ -278,28 +278,29 @@ export function ExperimentSwtsChat({
     <aside className="swts-task-panel">
       <div className="swts-task-topline"><span>وظیفه {state.current_position + 1} از {state.total_tasks}</span><strong dir="ltr">{mode === "preview" ? "PREVIEW" : formatRemaining(remaining)}</strong></div>
       <section><small>زمینه مشترک</small><p>{SWTS_COMMON_CONTEXT}</p></section>
-      <section><small>وظیفه فعلی</small><h2>{currentTask.title}</h2><p>{currentTask.prompt}</p></section>
-      <section className="required-response"><small>خروجی موردنیاز</small><p>{currentTask.requiredResponse}</p></section>
+      <section><small>موقعیت فعلی</small><h2>{currentTask.title}</h2><p>{currentTask.problem}</p></section>
+      <section className="required-response"><small>هدف گفت‌وگو</small><p>{currentTask.objective}</p></section>
+      <section><small>راهنمای مشترک</small><p>{SWTS_COMMON_CONVERSATION_INSTRUCTION}</p></section>
     </aside>
 
     <section className="swts-chat-panel" aria-label="گفت‌وگو با سامانه">
       <header className="swts-chat-header"><div className="assistant-avatar" aria-hidden="true">س</div><div><strong>دستیار جزیره سپید</strong><span><i className={healthReady ? "ready" : "pending"} />{healthReady ? "آماده پاسخ‌گویی" : "در حال اتصال"}</span></div></header>
       <div className="swts-messages" aria-live="polite">
-        {!messages.length && <div className="swts-empty"><span>✦</span><strong>از کجا شروع کنیم؟</strong><p>برای یافتن اطلاعات موردنیاز، سؤال خود را درباره همین وظیفه بنویسید.</p></div>}
+        {!messages.length && <div className="swts-empty"><span>✦</span><strong>از کجا شروع کنیم؟</strong><p>برای بررسی موضوع این وظیفه، گفت‌وگو را با پرسشی که برایتان طبیعی‌تر است آغاز کنید.</p></div>}
         {messages.map((message) => <article key={message.key} className={`swts-message ${message.role}`}><span>{message.role === "user" ? "شما" : "دستیار"}</span>{message.role === "assistant" ? <MarkdownMessage>{message.content}</MarkdownMessage> : <p>{message.content}</p>}</article>)}
         {pendingMessage && <article className="swts-message user pending"><span>شما</span><p>{pendingMessage}</p></article>}
         {isSending && !pendingFinish && <div className="swts-typing" role="status"><i /><i /><i /><span>در حال آماده‌کردن پاسخ…</span></div>}
         <div ref={messagesEnd} />
       </div>
       {error && <div className="swts-alert" role="alert"><p>{error}</p>{pendingFinish ? <button onClick={() => void retryPendingLog()} disabled={isSending}>ثبت دوباره</button> : !healthReady ? <button onClick={() => void verifyHealth()} disabled={healthBusy}>بررسی دوباره</button> : null}</div>}
-      {remaining <= 0 && <p className="swts-timeup">زمان جست‌وجو به پایان رسیده است. اکنون پاسخ نهایی خود را ثبت کنید.</p>}
+      {remaining <= 0 && <p className="swts-timeup">زمان گفت‌وگو به پایان رسیده است. اکنون برداشت کوتاه خود را ثبت کنید.</p>}
       <form className="swts-composer" onSubmit={(event) => void send(event)}><textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={composerKeyDown} maxLength={8000} placeholder="پیام خود را بنویسید…" disabled={!healthReady || isSending || Boolean(pendingFinish) || remaining <= 0} /><div><small>Enter برای ارسال · Shift+Enter برای خط جدید</small><button className="chat-send" aria-label="ارسال پیام" disabled={!draft.trim() || !healthReady || isSending || Boolean(pendingFinish) || remaining <= 0}>↑</button></div></form>
     </section>
 
     <aside className="swts-answer-panel">
-      <div><span className="answer-icon">✓</span><div><strong>پاسخ نهایی من</strong><small>می‌توانید هم‌زمان با گفت‌وگو پاسخ را کامل کنید.</small></div></div>
-      <form onSubmit={submitFinal}><label htmlFor="swts-final-answer">پاسخ موردنظر برای تحویل</label><textarea id="swts-final-answer" value={finalResponse} onChange={(event) => setFinalResponse(event.target.value)} rows={14} placeholder="یادداشت‌ها و پاسخ نهایی خود را اینجا بنویسید…" required />{currentTask.maxWords && <small className={finalTooLong ? "word-limit over" : "word-limit"}>{currentWords.toLocaleString("fa-IR")} / {currentTask.maxWords.toLocaleString("fa-IR")} واژه</small>}<button className="primary" disabled={!finalResponse.trim() || finalTooLong || submittingFinal || Boolean(pendingFinish)}>{submittingFinal ? "در حال ثبت…" : "ثبت پاسخ و ادامه"}</button></form>
-      <p className="answer-save-note">{mode === "preview" ? "حالت پیش‌نمایش: این پاسخ ذخیره نمی‌شود." : "پیام‌ها و پاسخ نهایی این بخش برای پژوهش ثبت می‌شوند."}</p>
+      <div><span className="answer-icon">✓</span><div><strong>برداشت من از گفت‌وگو</strong><small>پس از پایان گفت‌وگو، پاسخ کوتاه خود را ثبت کنید.</small></div></div>
+      <form onSubmit={submitReflection}><label htmlFor="swts-closing-reflection">{currentTask.closingPrompt}</label><textarea id="swts-closing-reflection" value={closingReflection} onChange={(event) => setClosingReflection(event.target.value)} rows={10} placeholder={currentTask.closingPlaceholder} required /><small className={reflectionTooLong ? "word-limit over" : "word-limit"}>{reflectionWords.toLocaleString("fa-IR")} / {currentTask.maxReflectionWords.toLocaleString("fa-IR")} واژه</small><button className="primary" disabled={!closingReflection.trim() || reflectionTooLong || submittingFinal || Boolean(pendingFinish)}>{submittingFinal ? "در حال ثبت…" : "ثبت برداشت و ادامه"}</button></form>
+      <p className="answer-save-note">{mode === "preview" ? "حالت پیش‌نمایش: هیچ‌یک از پیام‌ها یا این برداشت ذخیره نمی‌شوند." : "پیام‌ها، پاسخ‌های سامانه و برداشت کوتاه این بخش برای پژوهش ثبت می‌شوند."}</p>
     </aside>
   </div>;
 }

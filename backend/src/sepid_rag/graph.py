@@ -15,6 +15,7 @@ class RagState(TypedDict, total=False):
     retrieval_query: str
     retrieved: list
     answer: str
+    clarification: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -35,6 +36,31 @@ _FOLLOW_UP_MARKERS = {
     "چگونه",
     "چرا",
 }
+
+_INCOMPLETE_ENDINGS = {
+    "از",
+    "با",
+    "برای",
+    "به",
+    "درباره",
+    "مثل",
+    "مانند",
+    "که",
+    "یا",
+    "و",
+}
+
+
+def clarification_for_incomplete_query(query: str) -> str | None:
+    """Catch plainly unfinished messages before they become false no-result answers."""
+
+    normalized = normalize_persian(query).strip(" ؟?!،,.;:")
+    if not normalized:
+        return "لطفاً پرسش خود را کمی کامل‌تر بنویسید."
+    tokens = normalized.split()
+    if tokens and tokens[-1] in _INCOMPLETE_ENDINGS:
+        return "منظورتان را کمی کامل‌تر می‌کنید؟"
+    return None
 
 
 def retrieval_scope_for_task(task_id: str) -> str | None:
@@ -139,6 +165,13 @@ def build_graph(retriever, settings):
         )
 
     def retrieve(state: RagState) -> dict:
+        clarification = clarification_for_incomplete_query(state["query"])
+        if clarification:
+            return {
+                "retrieval_query": state["query"],
+                "retrieved": [],
+                "clarification": clarification,
+            }
         retrieval_scope = retrieval_scope_for_task(state["task_id"])
         entities = {
             entity
@@ -155,6 +188,8 @@ def build_graph(retriever, settings):
         }
 
     def answer(state: RagState) -> dict:
+        if state.get("clarification"):
+            return {"answer": state["clarification"]}
         results = state["retrieved"]
         if settings.llm_provider == "echo":
             ids = "، ".join(item.source_id for item in results)

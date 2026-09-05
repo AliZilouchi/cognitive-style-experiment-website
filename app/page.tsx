@@ -143,7 +143,7 @@ const copy = {
     testNext: "ادامه به موقعیت کاری شبیه‌سازی‌شده",
     ecsaEyebrow: "فعالیت تصویری",
     ecsaReadyTitle: "فعالیت آماده است",
-    ecsaReadyBody: "این فعالیت دو بخش دارد. پیش از آغاز هر بخش، دو سؤال تمرینی همراه با بازخورد خواهید داشت. سپس سؤال‌های اصلی همان بخش بدون نمایش بازخورد درست یا نادرست اجرا می‌شوند.",
+    ecsaReadyBody: "ابتدا چهار سؤال تمرینی همراه با بازخورد خواهید داشت. پس از آن سؤال‌های اصلی آغاز می‌شوند و بازخورد درست یا نادرست نمایش داده نمی‌شود.",
     materialPending: "محتوای تأییدشده آزمون هنوز باید وارد شود",
     materialPendingBody: "سامانه هیچ شکل جایگزین یا ساختگی تولید نمی‌کند. برای فعال‌سازی آزمون، بسته تصاویر و کلید پاسخ تأییدشده را پیوست کنید.",
     materialCounts: "۸۴ سؤال تصویری آماده است",
@@ -172,7 +172,7 @@ const copy = {
     testComplete: "آزمون کامل شد",
     testCompleteBody: "پاسخ‌های شما ثبت شدند. هر زمان آماده بودید به بخش بعدی ادامه دهید.",
     chatTitle: "موقعیت کاری شبیه‌سازی‌شده",
-    chatBody: "شرکت‌کنندگان واجد شرایط در این بخش وارد سناریوی نسخه‌بندی‌شده گفت‌وگو می‌شوند. مدل، شرط ورود و فرم پاسخ نهایی قابل تنظیم باقی می‌مانند.",
+    chatBody: "شرکت‌کنندگان واجد شرایط در این بخش وارد سه موقعیت نسخه‌بندی‌شده گفت‌وگو می‌شوند. مسیر گفت‌وگو و برداشت کوتاه پایان هر وظیفه برای پژوهش ثبت می‌شود.",
     restart: "بازگشت به ورودی",
     connection: "متصل",
     recovering: "در حال بازیابی جلسه…",
@@ -399,12 +399,12 @@ export default function Home() {
     await recordEvent("think_aloud_acknowledged", { version: "think-aloud-fa-v1", acknowledged: true }, "pre_task");
   }
 
-  async function handleTaskComplete(meta: SwtsTaskMeta & { finalResponse: string; completed: boolean }) {
+  async function handleTaskComplete(meta: SwtsTaskMeta & { closingReflection: string; completed: boolean }) {
     applyTaskMeta(meta);
     const completed = { taskId: meta.taskId, position: meta.position };
     setCompletedTask(completed);
     if (!previewMode) window.localStorage.setItem("study-swts-completed-task", JSON.stringify(completed));
-    await recordEvent("swts_task_answer_submitted", { version: "swts-task-answer-v2", task_id: meta.taskId, task_position: meta.position, final_response: meta.finalResponse }, "post_task");
+    await recordEvent("swts_task_answer_submitted", { version: "swts-closing-reflection-v1", task_id: meta.taskId, task_position: meta.position, closing_reflection: meta.closingReflection }, "post_task");
   }
 
   async function continueAfterPostTask(responses: unknown) {
@@ -716,7 +716,8 @@ export default function Home() {
               </>}
               {ecsaScreen === "instructions" && <div className="ecsa-instructions">
                 <h3>{t.testInstructionsTitle}</h3><p>{t.testInstructionsBody}</p>
-                <div className="practice-banner"><strong>تمرین پیش از هر بخش</strong><span>پیش از آغاز هر بخش، دو سؤال تمرینی همراه با پاسخ صحیح نمایش داده می‌شود. سؤال‌های اصلی آن بخش بدون بازخورد ادامه پیدا می‌کنند.</span></div><button className="primary ecsa-start" autoFocus onClick={beginEcsa}>{ecsaResponses.length ? t.resumeEcsa : t.beginEcsa}<Arrow rtl={rtl} /></button>
+                <div className="practice-banner"><strong>ابتدا ۴ سؤال تمرینی</strong><span>در سؤال‌های تمرینی پاسخ صحیح را همراه همان تصویر می‌بینید. پس از پایان تمرین، ۸۰ سؤال اصلی بدون بازخورد آغاز می‌شوند.</span></div>
+                <button className="primary ecsa-start" autoFocus onClick={beginEcsa}>{ecsaResponses.length ? t.resumeEcsa : t.beginEcsa}<Arrow rtl={rtl} /></button>
                 <div className="key-help"><kbd>Y</kbd><span>{t.yes}</span><kbd>N</kbd><span>{t.no}</span></div><small>{t.keyboardHelp}</small><small>{t.startHelp}</small>
               </div>}
               {ecsaScreen === "ready" && currentEcsaTrial && <div className="ecsa-ready"><span>{currentEcsaTrial.practice ? t.practiceLabel : t.trialLabel}</span><strong>{ecsaIndex + 1} / {ECSA_TRIALS.length}</strong><h3>{stimulusStatus === "error" ? t.imageLoadError : stimulusStatus === "buffering" ? t.preparingItem : t.readyTrial}</h3>{stimulusStatus === "error" ? <button className="secondary" onClick={() => void prepareCurrentTrial()}>{t.retryImage}</button> : <button className="primary" disabled={stimulusStatus !== "ready"} onClick={showEcsaTrial}>{t.showTrial}</button>}</div>}
