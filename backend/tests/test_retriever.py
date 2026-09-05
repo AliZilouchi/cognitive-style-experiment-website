@@ -89,6 +89,27 @@ class RetrieverTests(unittest.TestCase):
             },
         )
 
+    def test_new_public_topics_pin_their_atomic_chunks(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        retriever = CorpusRetriever(
+            documents,
+            HashingEmbeddings(256),
+            top_k=3,
+            score_margin=2.0,
+        )
+        cases = {
+            "مردم جزیره چه زبانی دارند و چطور با بومیان ارتباط بگیریم؟": "SHARED-FACT-LANGUAGE-COMMUNICATION",
+            "امکانات پزشکی و درمانی جزیره چیست؟": "SHARED-FACT-MEDICAL-SERVICES",
+            "جزیره فرودگاه دارد و چطور به آن برسیم؟": "SHARED-FACT-ISLAND-ACCESS",
+            "شرایط سیاسی و اداره جزیره چگونه است؟": "SHARED-FACT-POLITICAL-GOVERNANCE",
+        }
+        for query, expected_chunk in cases.items():
+            with self.subTest(query=query):
+                self.assertIn(
+                    expected_chunk,
+                    {item.chunk_id for item in retriever.search(query, None)},
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

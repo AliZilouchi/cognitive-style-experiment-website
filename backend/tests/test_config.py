@@ -31,6 +31,16 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(settings.llm_provider, "avalai")
             self.assertEqual(settings.embedding_dimension, 1024)
             self.assertEqual(settings.avalai_base_url, "https://api.avalai.ir/v1")
+            self.assertTrue(settings.enable_response_verifier)
+
+    def test_response_verifier_can_be_disabled_for_diagnostics(self):
+        with patch.dict(
+            os.environ,
+            {"ENABLE_RESPONSE_VERIFIER": "false"},
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            self.assertFalse(settings.enable_response_verifier)
 
     def test_hosted_openrouter_configuration_is_accepted(self):
         with patch.dict(

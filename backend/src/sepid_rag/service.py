@@ -8,7 +8,7 @@ from .config import Settings
 from .corpus import load_allowlisted_corpus
 from .embeddings import create_embeddings
 from .graph import build_graph
-from .prompts import SYSTEM_PROMPT_VERSION
+from .prompts import SYSTEM_PROMPT_VERSION, VERIFIER_PROMPT_VERSION
 from .retriever import CorpusRetriever
 
 
@@ -70,4 +70,9 @@ class RagService:
                 "query": result["retrieval_query"],
             },
             "prompt_version": SYSTEM_PROMPT_VERSION,
+            "verification": {
+                "enabled": self.settings.enable_response_verifier,
+                "status": result.get("verification_status", "unknown"),
+                "prompt_version": VERIFIER_PROMPT_VERSION,
+            },
         }

@@ -60,6 +60,7 @@ class Settings:
     llm_provider: str
     llm_model: str
     llm_max_tokens: int
+    enable_response_verifier: bool
     together_api_key: str
     groq_api_key: str
     openrouter_api_key: str
@@ -90,6 +91,7 @@ class Settings:
             llm_provider=os.getenv("LLM_PROVIDER", "echo").strip().lower(),
             llm_model=os.getenv("LLM_MODEL", "development-only").strip(),
             llm_max_tokens=int(os.getenv("LLM_MAX_TOKENS", "700")),
+            enable_response_verifier=_bool("ENABLE_RESPONSE_VERIFIER", True),
             together_api_key=os.getenv("TOGETHER_API_KEY", "").strip(),
             groq_api_key=os.getenv("GROQ_API_KEY", "").strip(),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "").strip(),

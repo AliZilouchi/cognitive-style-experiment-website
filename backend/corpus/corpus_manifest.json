@@ -1,12 +1,12 @@
 {
   "corpus_id": "sepid_island_fa_v3_enriched",
-  "package_revision": "3.0",
+  "package_revision": "3.1",
   "language": "fa",
   "fictional_domain": true,
   "inject_directories": ["sources", "enriched"],
   "ingestion_allowlist": "ingestion/allowlist.json",
   "ingestion_loader": "ingestion/load_allowlisted_sources.py",
-  "source_count": 29,
+  "source_count": 30,
   "exclude_from_injection": ["README.md", "corpus_manifest.json", "evaluation"],
   "sources": [
     {"source_id":"S01","file":"01_island_overview.md","topic":"overview"},
@@ -37,6 +37,7 @@
     {"source_id":"E08","relative_path":"enriched/08_food_shopping_and_services.md","topic":"food_shopping_services"},
     {"source_id":"E09","relative_path":"enriched/09_attractions_balanced.md","topic":"attractions_balanced"},
     {"source_id":"E10","relative_path":"enriched/10_transport_distances_and_routes.md","topic":"transport_routes"},
-    {"source_id":"E11","relative_path":"enriched/11_first_time_visitor_facts.md","topic":"visitor_facts"}
+    {"source_id":"E11","relative_path":"enriched/11_first_time_visitor_facts.md","topic":"visitor_facts"},
+    {"source_id":"E12","relative_path":"enriched/12_public_services_access_and_governance.md","topic":"public_services_access_governance"}
   ]
 }

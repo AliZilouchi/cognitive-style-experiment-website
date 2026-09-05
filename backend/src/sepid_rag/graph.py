@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import TypedDict
 
 from .normalization import normalize_persian
-from .prompts import SYSTEM_PROMPT, format_context
+from .prompts import SYSTEM_PROMPT, VERIFIER_PROMPT, format_context
+from .task_contexts import format_task_context
 
 
 class RagState(TypedDict, total=False):
@@ -15,7 +16,9 @@ class RagState(TypedDict, total=False):
     retrieval_query: str
     retrieved: list
     answer: str
+    draft_answer: str
     clarification: str
+    verification_status: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -93,6 +96,29 @@ def build_retrieval_query(
     if not recent:
         return query
     return "\n".join(["زمینه گفت‌وگوی اخیر:", *recent, "پرسش فعلی:", query])
+
+
+def clean_model_content(content: object) -> str:
+    """Remove provider reasoning wrappers without exposing hidden reasoning."""
+
+    cleaned = str(content).strip()
+    if "<think>" in cleaned:
+        if "</think>" not in cleaned:
+            raise RuntimeError("Model reasoning leaked and the final answer was truncated")
+        cleaned = cleaned.rsplit("</think>", maxsplit=1)[-1].strip()
+    return cleaned
+
+
+def extract_verified_answer(content: object) -> str | None:
+    """Parse the verifier envelope; malformed audits never replace a valid draft."""
+
+    cleaned = clean_model_content(content)
+    start = "<verified_answer>"
+    end = "</verified_answer>"
+    if start not in cleaned or end not in cleaned:
+        return None
+    answer = cleaned.split(start, maxsplit=1)[1].split(end, maxsplit=1)[0].strip()
+    return answer or None
 
 
 def build_graph(retriever, settings):
@@ -187,17 +213,24 @@ def build_graph(retriever, settings):
             "retrieved": retriever.search(retrieval_query, retrieval_scope),
         }
 
-    def answer(state: RagState) -> dict:
+    def draft_answer(state: RagState) -> dict:
         if state.get("clarification"):
-            return {"answer": state["clarification"]}
+            return {
+                "draft_answer": state["clarification"],
+                "answer": state["clarification"],
+                "verification_status": "not_needed",
+            }
         results = state["retrieved"]
         if settings.llm_provider == "echo":
             ids = "، ".join(item.source_id for item in results)
-            return {
-                "answer": (
+            answer = (
                     "حالت آزمایشی بدون مدل زبانی فعال است. "
                     f"منابع بازیابی‌شده: {ids}"
                 )
+            return {
+                "draft_answer": answer,
+                "answer": answer,
+                "verification_status": "not_available",
             }
 
         messages = [SystemMessage(content=SYSTEM_PROMPT)]
@@ -212,23 +245,67 @@ def build_graph(retriever, settings):
             HumanMessage(
                 content=(
                     f"شناسهٔ فعالیت فعلی: {state['task_id']}\n"
+                    f"زمینه و مرز فعالیت:\n{format_task_context(state['task_id'])}\n\n"
                     f"منابع بازیابی‌شده:\n{format_context(results)}\n\n"
                     f"پرسش فعلی کاربر:\n{state['query']}"
                 )
             )
         )
         response = llm.invoke(messages)
-        content = str(response.content)
-        if "<think>" in content:
-            if "</think>" not in content:
-                raise RuntimeError("Model reasoning leaked and the final answer was truncated")
-            content = content.rsplit("</think>", maxsplit=1)[-1].strip()
-        return {"answer": content}
+        content = clean_model_content(response.content)
+        return {"draft_answer": content, "answer": content}
+
+    def verify_answer(state: RagState) -> dict:
+        if (
+            state.get("clarification")
+            or settings.llm_provider == "echo"
+            or not settings.enable_response_verifier
+        ):
+            return {
+                "answer": state["draft_answer"],
+                "verification_status": state.get("verification_status", "disabled"),
+            }
+
+        evidence = format_context(state["retrieved"])
+        audit_messages = [
+            SystemMessage(content=VERIFIER_PROMPT),
+            HumanMessage(
+                content=(
+                    f"زمینه و مرز فعالیت:\n{format_task_context(state['task_id'])}\n\n"
+                    f"پرسش فعلی:\n{state['query']}\n\n"
+                    f"منابع مجاز:\n{evidence}\n\n"
+                    f"پیش‌نویس برای ممیزی:\n{state['draft_answer']}"
+                )
+            ),
+        ]
+        try:
+            response = llm.invoke(audit_messages)
+            verified = extract_verified_answer(response.content)
+        except Exception:
+            # A verifier outage must not turn an otherwise valid participant turn
+            # into an endless loading/error loop. The unverified status is exposed
+            # to the API for monitoring.
+            verified = None
+        if verified is None:
+            return {
+                "answer": state["draft_answer"],
+                "verification_status": "fallback_to_draft",
+            }
+        return {
+            "answer": verified,
+            "verification_status": (
+                "verified_unchanged"
+                if verified == state["draft_answer"]
+                else "verified_revised"
+            ),
+        }
 
     graph = StateGraph(RagState)
     graph.add_node("retrieve", retrieve)
-    graph.add_node("answer", answer)
+    graph.add_node("draft_answer", draft_answer)
+    graph.add_node("verify_answer", verify_answer)
     graph.add_edge(START, "retrieve")
-    graph.add_edge("retrieve", "answer")
-    graph.add_edge("answer", END)
+    graph.add_edge("retrieve", "draft_answer")
+    graph.add_edge("draft_answer", "verify_answer")
+    graph.add_edge("verify_answer", END)
     return graph.compile()

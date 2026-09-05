@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertEqual(len(documents), 90)
+        self.assertEqual(len(documents), 100)
         self.assertEqual(
             {source_id for item in documents for source_id in item.source_ids},
-            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 12)},
+            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 13)},
         )
         self.assertEqual(len({item.chunk_id for item in documents}), len(documents))
         self.assertTrue(all(item.task_ids for item in documents))
@@ -26,10 +26,10 @@ class CorpusTests(unittest.TestCase):
     def test_all_original_sources_are_available_as_fallbacks(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
         fallback = [item for item in documents if item.node_type == "source"]
-        self.assertEqual(len(fallback), 29)
+        self.assertEqual(len(fallback), 30)
         self.assertEqual(
             {item.source_id for item in fallback},
-            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 12)},
+            {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 13)},
         )
         self.assertTrue(all(item.text.startswith("# ") for item in fallback))
 
@@ -87,6 +87,23 @@ class CorpusTests(unittest.TestCase):
                 "T3-FACT-RITUALS",
                 "T3-FACT-SYMBOLS",
                 "T3-FACT-NATURE-SENSITIVITY",
+            }.issubset(chunk_ids)
+        )
+
+    def test_new_public_information_topics_have_atomic_entry_points(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        chunk_ids = {item.chunk_id for item in documents}
+        self.assertTrue(
+            {
+                "SHARED-FACT-LANGUAGE-COMMUNICATION",
+                "SHARED-FACT-MEDICAL-SERVICES",
+                "SHARED-FACT-GENERAL-CONDITIONS",
+                "T2-COMPARE-CROWDING",
+                "SHARED-FACT-VISITOR-FEEDBACK",
+                "SHARED-FACT-RESIDENCY-MIGRATION",
+                "SHARED-FACT-SECURITY-SAFETY",
+                "SHARED-FACT-ISLAND-ACCESS",
+                "SHARED-FACT-POLITICAL-GOVERNANCE",
             }.issubset(chunk_ids)
         )
 

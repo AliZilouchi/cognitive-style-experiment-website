@@ -1,7 +1,16 @@
 import unittest
 
-from sepid_rag.graph import clarification_for_incomplete_query
-from sepid_rag.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_VERSION
+from sepid_rag.graph import (
+    clarification_for_incomplete_query,
+    extract_verified_answer,
+)
+from sepid_rag.prompts import (
+    SYSTEM_PROMPT,
+    SYSTEM_PROMPT_VERSION,
+    VERIFIER_PROMPT,
+    VERIFIER_PROMPT_VERSION,
+)
+from sepid_rag.task_contexts import TASK_CONTEXT_VERSION, format_task_context
 
 
 class ConversationPolicyTests(unittest.TestCase):
@@ -21,11 +30,41 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v7-grounded-conversation")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v8-task-aware-conversation")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
         self.assertIn("پاسخ را با پیشنهاد ادامه", SYSTEM_PROMPT)
+
+    def test_each_research_task_has_problem_objective_and_neutral_boundaries(self):
+        self.assertEqual(TASK_CONTEXT_VERSION, "sepid-swts-task-context-v1")
+        for task_id in ("task_1", "task_2", "task_3"):
+            context = format_task_context(task_id)
+            self.assertIn("مسئله:", context)
+            self.assertIn("هدف:", context)
+            self.assertIn("دامنه اصلی:", context)
+            self.assertIn("اطلاعات را پنهان نکنید", context)
+            self.assertIn("سؤال بعدی مشخص پیشنهاد نکنید", context)
+
+    def test_free_chat_has_full_corpus_without_research_task_boundary(self):
+        context = format_task_context("free_chat")
+        self.assertIn("همه موضوع‌های موجود", context)
+        self.assertIn("هیچ هدف فعالیتی", context)
+        self.assertNotIn("سیاست مرزبندی", context)
+
+    def test_verifier_checks_grounding_math_scope_and_answer_length(self):
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v1")
+        self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
+        self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
+        self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
+        self.assertIn("سیاست مرزبندی فعالیت", VERIFIER_PROMPT)
+
+    def test_verified_answer_envelope_is_strictly_extracted(self):
+        self.assertEqual(
+            extract_verified_answer("<verified_answer>پاسخ اصلاح‌شده</verified_answer>"),
+            "پاسخ اصلاح‌شده",
+        )
+        self.assertIsNone(extract_verified_answer("پاسخ بدون برچسب"))
 
 
 if __name__ == "__main__":

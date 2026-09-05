@@ -154,6 +154,7 @@ def load_allowlisted_corpus(corpus_root: Path) -> list[CorpusDocument]:
         "E09": ("task_2",),
         "E10": ("task_1", "task_2", "task_3"),
         "E11": ("task_3",),
+        "E12": ("task_1", "task_2", "task_3"),
     }
     for source_id, relative_path in allowed:
         text_value = source_texts[source_id]

@@ -16,3 +16,11 @@
 {"task_id":"task_3","query_type":"entity","query":"داستان بانوی سپیدآب چیست؟","required_chunk_ids":["T3-FACT-MYTH-FIGURES"]}
 {"task_id":"task_3","query_type":"entity","query":"آیین چراغ‌های ساحل چگونه برگزار می‌شود؟","required_chunk_ids":["T3-FACT-RITUALS"]}
 {"task_id":"task_3","query_type":"entity","query":"مردم جزیره درباره گردشگران و طبیعت چه حساسیتی دارند؟","required_chunk_ids":["T3-FACT-NATURE-SENSITIVITY"]}
+{"task_id":"free_chat","query_type":"public_services","query":"مردم جزیره چه زبانی دارند و چطور با بومیان ارتباط بگیریم؟","required_chunk_ids":["SHARED-FACT-LANGUAGE-COMMUNICATION"]}
+{"task_id":"free_chat","query_type":"public_services","query":"امکانات پزشکی و درمانی جزیره چیست؟","required_chunk_ids":["SHARED-FACT-MEDICAL-SERVICES"]}
+{"task_id":"task_2","query_type":"comparison","query":"شلوغی جزیره در سه بازه سفر چه تفاوتی دارد؟","required_chunk_ids":["T2-COMPARE-CROWDING"]}
+{"task_id":"free_chat","query_type":"public_services","query":"نظر مسافران قبلی درباره جزیره چیست؟","required_chunk_ids":["SHARED-FACT-VISITOR-FEEDBACK"]}
+{"task_id":"free_chat","query_type":"public_services","query":"برای مهاجرت و سکونت دائم در جزیره چه شرایطی وجود دارد؟","required_chunk_ids":["SHARED-FACT-RESIDENCY-MIGRATION"]}
+{"task_id":"free_chat","query_type":"public_services","query":"شرایط امنیتی جزیره چگونه است؟","required_chunk_ids":["SHARED-FACT-SECURITY-SAFETY"]}
+{"task_id":"free_chat","query_type":"public_services","query":"جزیره فرودگاه دارد و چطور می‌توان به آن رسید؟","required_chunk_ids":["SHARED-FACT-ISLAND-ACCESS"]}
+{"task_id":"free_chat","query_type":"public_services","query":"شرایط سیاسی و نحوه اداره جزیره چگونه است؟","required_chunk_ids":["SHARED-FACT-POLITICAL-GOVERNANCE"]}

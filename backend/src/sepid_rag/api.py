@@ -51,7 +51,7 @@ def get_rag_service(request: Request) -> RagService:
     return service
 
 
-app = FastAPI(title="Sepid Island RAG", version="0.9.2", lifespan=lifespan)
+app = FastAPI(title="Sepid Island RAG", version="1.0.0", lifespan=lifespan)
 allowed_origins = [
     item.strip()
     for item in os.getenv(
@@ -98,6 +98,7 @@ def health(request: Request) -> dict:
         "top_k": service.settings.top_k,
         "embedding_model": service.retriever.embeddings.model_identity,
         "llm_provider": service.settings.llm_provider,
+        "response_verifier": service.settings.enable_response_verifier,
     }
 
 
