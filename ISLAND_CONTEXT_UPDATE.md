@@ -9,8 +9,9 @@ grounding pass using the same configured language model.
 Extract this ZIP at the repository root and allow it to overwrite files with
 the same relative paths. Then commit and push the extracted files.
 
-Only the RAG/backend deployment must be rebuilt. The frontend, Supabase schema,
-and environment variables do not change.
+Both the RAG/backend and frontend deployments must be rebuilt. The frontend
+change removes a stale hard-coded 29-source readiness check. The Supabase
+schema and environment variables do not change.
 
 ## Behaviour
 
@@ -47,4 +48,4 @@ participant message and therefore increases model cost and response latency.
 PYTHONPATH=backend/src python3 -m unittest discover -s backend/tests -p "test_*.py"
 ```
 
-Expected result: 42 tests pass.
+Expected result: 43 tests pass.

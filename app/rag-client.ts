@@ -40,6 +40,18 @@ export type RagChatResponse = {
     query: string;
   };
   prompt_version: string;
+  verification?: {
+    enabled: boolean;
+    status:
+      | "verified_unchanged"
+      | "verified_revised"
+      | "fallback_to_draft"
+      | "disabled"
+      | "not_needed"
+      | "not_available"
+      | "unknown";
+    prompt_version: string;
+  };
 };
 
 export type RagHealthResponse = {
@@ -50,6 +62,7 @@ export type RagHealthResponse = {
   top_k: number;
   embedding_model: string;
   llm_provider: string;
+  response_verifier?: boolean;
 };
 
 export class RagRequestError extends Error {
@@ -64,7 +77,7 @@ export class RagRequestError extends Error {
 
 export function toParticipantAnswer(answer: string): string {
   return answer
-    .replace(/\s*\[(?:S(?:0[1-9]|1[0-8])|E(?:0[1-9]|1[01]))\]/g, "")
+    .replace(/\s*\[(?:S\d{2}|E\d{2})\]/g, "")
     .replace(/[ \t]+([،؛,.!?؟])/g, "$1")
     .trim();
 }
@@ -97,7 +110,8 @@ export async function checkRagHealth(): Promise<RagHealthResponse> {
   if (
     result.status !== "ok" ||
     result.environment !== "experiment" ||
-    result.source_count !== 29 ||
+    !Number.isInteger(result.source_count) ||
+    result.source_count < 1 ||
     !Number.isInteger(result.top_k) ||
     result.top_k < 1 ||
     result.top_k > 10

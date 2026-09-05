@@ -1,6 +1,71 @@
+import sys
+from types import ModuleType, SimpleNamespace
 import unittest
+from unittest.mock import patch
 
-from sepid_rag.graph import build_retrieval_query, retrieval_scope_for_task
+from sepid_rag.graph import build_graph, build_retrieval_query, retrieval_scope_for_task
+
+
+class _Message:
+    def __init__(self, content):
+        self.content = content
+
+
+class _CompiledGraph:
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+    def invoke(self, state):
+        result = dict(state)
+        for name in ("retrieve", "draft_answer", "verify_answer"):
+            result.update(self.nodes[name](result))
+        return result
+
+
+class _StateGraph:
+    def __init__(self, state_type):
+        self.nodes = {}
+
+    def add_node(self, name, function):
+        self.nodes[name] = function
+
+    def add_edge(self, start, end):
+        pass
+
+    def compile(self):
+        return _CompiledGraph(self.nodes)
+
+
+class _FakeChat:
+    calls = []
+
+    def __init__(self, **kwargs):
+        pass
+
+    def invoke(self, messages):
+        self.calls.append(messages)
+        if len(self.calls) == 1:
+            return SimpleNamespace(content="جزیره فرودگاه مسافری دارد.")
+        return SimpleNamespace(
+            content=(
+                "<verified_answer>جزیره فرودگاه مسافری ندارد و راه معمول ورود، "
+                "شناور مسافری از بندر آفتاب است.</verified_answer>"
+            )
+        )
+
+
+class _Retrieved:
+    source_id = "E12"
+    source_ids = ("E12",)
+    chunk_id = "SHARED-FACT-ISLAND-ACCESS"
+    text = "جزیره فرودگاه مسافری ندارد و راه معمول ورود، شناور مسافری از بندر آفتاب است."
+
+
+class _Retriever:
+    documents = []
+
+    def search(self, query, task_id):
+        return [_Retrieved()]
 
 
 class RetrievalQueryTests(unittest.TestCase):
@@ -40,6 +105,42 @@ class RetrievalQueryTests(unittest.TestCase):
             {"کلبه‌های نارون"},
         )
         self.assertIn("کلبه‌های نارون", result)
+
+    def test_two_pass_pipeline_revises_an_unsupported_draft(self):
+        langchain_messages = ModuleType("langchain_core.messages")
+        langchain_messages.AIMessage = _Message
+        langchain_messages.HumanMessage = _Message
+        langchain_messages.SystemMessage = _Message
+        langgraph_graph = ModuleType("langgraph.graph")
+        langgraph_graph.END = "END"
+        langgraph_graph.START = "START"
+        langgraph_graph.StateGraph = _StateGraph
+        langchain_openai = ModuleType("langchain_openai")
+        langchain_openai.ChatOpenAI = _FakeChat
+        modules = {
+            "langchain_core": ModuleType("langchain_core"),
+            "langchain_core.messages": langchain_messages,
+            "langgraph": ModuleType("langgraph"),
+            "langgraph.graph": langgraph_graph,
+            "langchain_openai": langchain_openai,
+        }
+        settings = SimpleNamespace(
+            llm_provider="avalai",
+            llm_model="fake-model",
+            llm_max_tokens=700,
+            avalai_api_key="fake-key",
+            avalai_base_url="https://example.invalid/v1",
+            enable_response_verifier=True,
+        )
+        _FakeChat.calls = []
+        with patch.dict(sys.modules, modules):
+            graph = build_graph(_Retriever(), settings)
+            result = graph.invoke(
+                {"query": "چطور به جزیره برسیم؟", "task_id": "free_chat", "history": []}
+            )
+        self.assertEqual(len(_FakeChat.calls), 2)
+        self.assertEqual(result["verification_status"], "verified_revised")
+        self.assertIn("فرودگاه مسافری ندارد", result["answer"])
 
 
 if __name__ == "__main__":
