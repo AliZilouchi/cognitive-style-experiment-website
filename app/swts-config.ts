@@ -1,7 +1,7 @@
 export type SwtsTaskId = "task_1" | "task_2" | "task_3";
 
 export const SWTS_VERSION = "sepid-island-fa-swts-v3-neutral-reflection";
-export const SWTS_TIME_LIMIT_SECONDS = 12 * 60;
+export const SWTS_TIME_LIMIT_SECONDS = 60 * 60;
 
 const NEUTRAL_REFLECTION_PROMPT =
   "مهم‌ترین چیزی که از این گفت‌وگو برای شما روشن شد چه بود؟";
