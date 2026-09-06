@@ -1,28 +1,28 @@
-# Sepid RAG request-planner v4
+# Sepid RAG evidence-projection v5
 
-This patch contains only the files changed for the request-level planning update.
+Incremental backend patch for installations that already include request-planner v4.
 
 ## Apply
 
-Copy the `backend` directory from this archive over the repository root, preserving paths. No frontend files or environment variables change.
+Copy the included `backend` directory over the repository's existing `backend` directory, preserving paths. No frontend files, SQL migrations, dependencies, or environment-variable changes are required.
 
-Redeploy the RAG/backend Vercel project after committing and pushing the files.
+Commit, push, and redeploy the RAG API project without build cache.
 
-## Behavior added
+## Changes
 
-- Classifies every turn as `single_fact`, `single_entity`, `category_overview`, `comparison`, `multi_part`, `calculation_limited`, `broad_clarification`, or `unsupported`.
-- Selects a retrieval budget and preferred corpus node types for that level.
-- Sends an explicit Persian response contract to both the answer model and verifier.
-- Resolves short follow-ups from history without letting history increase answer breadth.
-- Bypasses retrieval/model generation for unsupported and broad corpus-dump requests.
-- Rejects arithmetic or derived totals in calculation-limited responses and falls back safely if the model or verifier ignores the contract.
+- Category overview requests receive a structured minimal evidence projection instead of full profile chunks.
+- Overview output is validated for prices, percentages, booking rules, service details, and numeric leakage.
+- Invalid overview output falls back to the structured overview rather than exposing extra facts.
+- Accommodation calculation requests cannot retrieve the generic seasonal tourism-cost percentage.
+- Explanation, cultural, follow-up, multi-part, and explicit comparison modes retain normal generative flexibility.
+- Prompt and knowledge-index versions are advanced for research reproducibility.
 
 ## Verification
 
-Run from `backend`:
+From `backend` run:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-Expected result: 55 tests pass.
+Expected: 58 tests pass.

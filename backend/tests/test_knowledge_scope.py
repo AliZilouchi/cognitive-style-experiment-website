@@ -62,6 +62,35 @@ class KnowledgeScopeTests(unittest.TestCase):
         self.assertEqual(decision.retrieval_limit, 0)
         self.assertIn("موضوع مشخص", self.scope.direct_response(decision))
 
+    def test_category_overview_uses_structured_minimal_evidence(self):
+        decision = self.scope.classify("گزینه های اقامت چیست؟", self.entities)
+        projected = self.scope.project_evidence([], decision)
+        self.assertEqual(decision.request_level, "category_overview")
+        self.assertIn("هتل صدف", projected)
+        self.assertIn("اردوگاه چشمه", projected)
+        self.assertNotIn("یورو", projected)
+        self.assertNotIn("بیعانه", projected)
+        self.assertTrue(self.scope.answer_passes_contract(projected, decision))
+        self.assertFalse(
+            self.scope.answer_passes_contract(
+                projected + "\nقیمت هتل ۲۴۰ یورو است.", decision
+            )
+        )
+
+    def test_accommodation_calculation_hides_generic_seasonal_cost_chunks(self):
+        decision = self.scope.classify(
+            "هزینه اقامت ده شب در اردیبهشت را حساب کن", self.entities
+        )
+        seasonal = type(
+            "Result", (), {"topic": "travel_cost", "chunk_id": "season", "text": "۱۰ درصد"}
+        )()
+        lodging = type(
+            "Result", (), {"topic": "accommodation_profile", "chunk_id": "hotel", "text": "قیمت پایه"}
+        )()
+        projected = self.scope.project_evidence([seasonal, lodging], decision)
+        self.assertNotIn("۱۰ درصد", projected)
+        self.assertIn("قیمت پایه", projected)
+
     def test_request_levels_choose_different_contracts(self):
         fact = self.scope.classify("هتل صدف صبحانه دارد؟", self.entities)
         entity = self.scope.classify(

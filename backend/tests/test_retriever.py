@@ -110,6 +110,23 @@ class RetrieverTests(unittest.TestCase):
                     {item.chunk_id for item in retriever.search(query, None)},
                 )
 
+    def test_request_plan_can_restrict_retrieval_to_indexes(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        retriever = CorpusRetriever(
+            documents,
+            HashingEmbeddings(256),
+            top_k=5,
+            score_margin=2.0,
+        )
+        results = retriever.search(
+            "گزینه های اقامت چیست؟",
+            None,
+            preferred_node_types=("index",),
+            limit=2,
+        )
+        self.assertLessEqual(len(results), 2)
+        self.assertTrue(all(item.node_type == "index" for item in results))
+
 
 if __name__ == "__main__":
     unittest.main()

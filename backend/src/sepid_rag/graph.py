@@ -29,6 +29,7 @@ class RagState(TypedDict, total=False):
     response_contract: str
     request_decision: ScopeDecision
     direct_answer: str
+    projected_context: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -239,14 +240,15 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "request_decision": decision,
                 "direct_answer": direct_answer,
             }
+        results = retriever.search(
+            retrieval_query,
+            retrieval_scope,
+            preferred_node_types=decision.preferred_node_types,
+            limit=decision.retrieval_limit,
+        )
         return {
             "retrieval_query": retrieval_query,
-            "retrieved": retriever.search(
-                retrieval_query,
-                retrieval_scope,
-                preferred_node_types=decision.preferred_node_types,
-                limit=decision.retrieval_limit,
-            ),
+            "retrieved": results,
             "knowledge_classification": decision.classification,
             "knowledge_guidance": decision.guidance,
             "closed_world_context": closed_world,
@@ -255,6 +257,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             "request_level": decision.request_level,
             "response_contract": decision.response_contract,
             "request_decision": decision,
+            "projected_context": knowledge_scope.project_evidence(results, decision),
         }
 
     def draft_answer(state: RagState) -> dict:
@@ -300,7 +303,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                     f"قرارداد الزام‌آور پاسخ:\n{state.get('response_contract', '')}\n\n"
                     f"ارتباط با فعالیت فعلی: {state.get('task_relevance', 'unknown')}\n"
                     f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
-                    f"منابع بازیابی‌شده:\n{format_context(results)}\n\n"
+                    f"شواهد مجاز و متناسب با سطح درخواست:\n{state.get('projected_context', format_context(results)) or 'داده پایه مرتبطی بازیابی نشد.'}\n\n"
                     f"پرسش فعلی کاربر:\n{state['query']}"
                 )
             )
@@ -327,7 +330,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "verification_status": state.get("verification_status", "disabled"),
             }
 
-        evidence = format_context(state["retrieved"])
+        evidence = state.get("projected_context", format_context(state["retrieved"]))
         audit_messages = [
             SystemMessage(content=VERIFIER_PROMPT),
             HumanMessage(

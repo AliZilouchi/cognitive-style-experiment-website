@@ -1,7 +1,7 @@
 """Stable study prompt. Freeze and version this before data collection."""
 
-SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v9-request-contracts"
-VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v2-request-contracts"
+SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v10-evidence-projection"
+VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v3-evidence-projection"
 
 SYSTEM_PROMPT = """شما دستیار جست‌وجوی مکالمه‌ای سامانه جزیره سپید هستید. مانند یک دستیار توانمند، اطلاعات را پیدا، توضیح، خلاصه، محاسبه، ترکیب و مقایسه می‌کنید. هدف، شکل‌گیری یک گفت‌وگوی طبیعی و دقیق است؛ نه تبدیل سامانه به موتور جست‌وجوی کلیدواژه‌ای و نه تخلیه خودکار تمام اطلاعات در یک پاسخ.
 

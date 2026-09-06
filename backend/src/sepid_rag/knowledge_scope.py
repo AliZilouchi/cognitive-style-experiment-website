@@ -48,6 +48,7 @@ class KnowledgeScope:
             alias for _, aliases in self._topics for alias in aliases
         } | {alias for aliases in self._field_aliases.values() for alias in aliases}
         self._contracts = planner.get("contracts", {})
+        self._category_overviews = planner.get("category_overviews", {})
 
     @staticmethod
     def _normalized_values(values: list[str]) -> tuple[str, ...]:
@@ -190,7 +191,46 @@ class KnowledgeScope:
             return str(self.data["request_planner"]["broad_clarification_response"])
         return None
 
+    def project_evidence(self, results: list, decision: ScopeDecision) -> str:
+        """Expose only evidence appropriate for the chosen request level.
+
+        Nuanced modes retain normal retrieved prose. Only category listings and
+        accommodation calculations receive a narrower, deterministic view.
+        """
+        if decision.request_level == "category_overview":
+            for topic_id in decision.topic_ids:
+                overview = self._category_overviews.get(topic_id)
+                if not overview:
+                    continue
+                rows = [str(overview.get("intro", ""))]
+                for item in overview.get("items", []):
+                    label = str(item["name"])
+                    identifying = str(item.get("identifying_property", "")).strip()
+                    rows.append(f"- {label}: {identifying}" if identifying else f"- {label}")
+                return "\n".join(row for row in rows if row)
+
+        filtered = list(results)
+        if (
+            decision.request_level == "calculation_limited"
+            and "accommodation" in decision.topic_ids
+        ):
+            # Seasonal tourism indices do not establish a percentage change for
+            # each lodging price. Do not expose them to lodging calculations.
+            filtered = [item for item in filtered if item.topic != "travel_cost"]
+        return "\n\n".join(
+            f"--- بخش {item.chunk_id} ---\n{item.text}" for item in filtered
+        )
+
     def answer_passes_contract(self, answer: str, decision: ScopeDecision) -> bool:
+        if decision.request_level == "category_overview":
+            normalized = normalize_persian(answer)
+            forbidden = self._normalized_values(
+                self.data.get("request_planner", {}).get(
+                    "category_overview_forbidden_details", []
+                )
+            )
+            numeric_detail = bool(re.search(r"[۰-۹0-9]", answer))
+            return not numeric_detail and not any(term in normalized for term in forbidden)
         if decision.request_level != "calculation_limited":
             return True
         normalized = normalize_persian(answer)
@@ -202,6 +242,10 @@ class KnowledgeScope:
         return not (arithmetic or derived_total)
 
     def contract_fallback(self, decision: ScopeDecision) -> str:
+        if decision.request_level == "category_overview":
+            projected = self.project_evidence([], decision)
+            if projected:
+                return projected
         if decision.request_level == "calculation_limited":
             return str(self.data["request_planner"]["calculation_fallback_response"])
         return self.not_documented_response
