@@ -84,7 +84,7 @@ class Settings:
             embedding_dimension=int(os.getenv("EMBEDDING_DIMENSION", "768")),
             query_prefix=_prefix("QUERY_PREFIX"),
             document_prefix=_prefix("DOCUMENT_PREFIX"),
-            top_k=int(os.getenv("TOP_K", "3")),
+            top_k=int(os.getenv("TOP_K", "8")),
             retrieval_score_margin=float(os.getenv("RETRIEVAL_SCORE_MARGIN", "0.12")),
             max_chunks_per_source=int(os.getenv("MAX_CHUNKS_PER_SOURCE", "2")),
             mmr_lambda=float(os.getenv("MMR_LAMBDA", "0.75")),
