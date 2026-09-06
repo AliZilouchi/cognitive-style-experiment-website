@@ -35,6 +35,7 @@ export type RagChatResponse = {
   retrieval: {
     requested_top_k: number;
     returned_chunks: number;
+    candidate_chunks?: number;
     task_id: RagTaskId;
     embedding_model: string;
     query: string;
@@ -45,6 +46,9 @@ export type RagChatResponse = {
     version: string;
     classification: "supported" | "outside_world" | "unknown_topic" | "unknown";
     task_relevance?: "core" | "adjacent" | "outside_task" | "free_chat" | "unknown";
+    judge_status?: "judged" | "fallback" | "not_needed" | "unknown";
+    judge_version?: string;
+    coverage?: string;
   };
   verification?: {
     enabled: boolean;

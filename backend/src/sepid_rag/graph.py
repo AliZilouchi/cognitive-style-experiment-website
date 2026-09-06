@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import TypedDict
 
 from .normalization import normalize_persian
-from .prompts import SYSTEM_PROMPT, VERIFIER_PROMPT, format_context
+from .prompts import EVIDENCE_JUDGE_PROMPT, SYSTEM_PROMPT, VERIFIER_PROMPT, format_context
 from .task_contexts import classify_task_relevance, format_task_context, task_reminder
 from .knowledge_scope import KnowledgeScope, ScopeDecision
 
@@ -33,6 +34,9 @@ class RagState(TypedDict, total=False):
     projected_context: str
     retrieval_queries: list[str]
     social_answer: str
+    raw_retrieved: list
+    evidence_judge_status: str
+    evidence_coverage: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -163,6 +167,27 @@ def extract_verified_answer(content: object) -> str | None:
     return answer or None
 
 
+def extract_evidence_decision(content: object) -> dict | None:
+    """Parse and minimally validate the post-retrieval judge envelope."""
+    cleaned = clean_model_content(content)
+    start = "<evidence_decision>"
+    end = "</evidence_decision>"
+    if start not in cleaned or end not in cleaned:
+        return None
+    payload = cleaned.split(start, maxsplit=1)[1].split(end, maxsplit=1)[0].strip()
+    try:
+        result = json.loads(payload)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(result, dict):
+        return None
+    if result.get("classification") not in {"supported", "unsupported"}:
+        return None
+    if not isinstance(result.get("selected_chunk_ids", []), list):
+        return None
+    return result
+
+
 def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
     try:
         from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -245,6 +270,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         if clarification:
             return {
                 "retrieval_query": state["query"],
+                "retrieval_queries": [],
                 "retrieved": [],
                 "clarification": clarification,
             }
@@ -259,13 +285,102 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             state["query"], state.get("history", []), entities
         )
         retrieval_queries = build_retrieval_queries(state["query"], retrieval_query)
-        decision = knowledge_scope.classify(
-            state["query"], entities, contextual_query=retrieval_query
+        # Retrieval deliberately happens before Knowledge Index classification.
+        # A missing alias must never suppress valid evidence (for example events).
+        if hasattr(retriever, "search_many"):
+            results = retriever.search_many(
+                retrieval_queries,
+                retrieval_scope,
+                preferred_node_types=(),
+                limit=settings.top_k,
+            )
+        else:
+            results = retriever.search(
+                retrieval_query,
+                retrieval_scope,
+                preferred_node_types=(),
+                limit=settings.top_k,
+            )
+        return {
+            "retrieval_query": retrieval_query,
+            "retrieval_queries": retrieval_queries,
+            "retrieved": results,
+            "raw_retrieved": results,
+        }
+
+    def judge_evidence(state: RagState) -> dict:
+        if state.get("social_answer") or state.get("clarification"):
+            return {"evidence_judge_status": "not_needed"}
+
+        results = state.get("raw_retrieved", state.get("retrieved", []))
+        entities = {
+            entity for document in retriever.documents for entity in document.entities
+        }
+        baseline = knowledge_scope.classify(
+            state["query"], entities, contextual_query=state.get("retrieval_query")
         )
-        closed_world = knowledge_scope.closed_world_context(retrieval_query)
+        judge_result = None
+        if settings.llm_provider != "echo" and results:
+            candidate_context = "\n\n".join(
+                f"chunk_id={item.chunk_id}\nnode_type={item.node_type}\n"
+                f"topic={item.topic}\ntext={item.text}"
+                for item in results
+            )
+            messages = [
+                SystemMessage(content=EVIDENCE_JUDGE_PROMPT),
+                HumanMessage(content=(
+                    f"زمینه فعالیت:\n{format_task_context(state['task_id'])}\n\n"
+                    f"پرسش فعلی:\n{state['query']}\n\n"
+                    f"صورت حل‌شده برای ارجاع مکالمه‌ای:\n"
+                    f"{state.get('retrieval_query', state['query'])}\n\n"
+                    f"نامزدهای بازیابی‌شده:\n{candidate_context}"
+                )),
+            ]
+            try:
+                judge_result = extract_evidence_decision(llm.invoke(messages).content)
+            except Exception:
+                judge_result = None
+
+        valid_ids = {item.chunk_id for item in results}
+        if judge_result is not None:
+            selected_ids = [
+                str(item) for item in judge_result.get("selected_chunk_ids", [])
+                if str(item) in valid_ids
+            ][:6]
+            classification = str(judge_result["classification"])
+            # A supported judgment without any valid evidence is malformed.
+            if classification == "supported" and not selected_ids:
+                judge_result = None
+
+        if judge_result is None:
+            # Safe fallback: retrieval evidence remains available and an unknown
+            # alias cannot close the corpus. The answer verifier still guards it.
+            selected = list(results[: min(6, len(results))])
+            classification = "supported" if selected else "unsupported"
+            request_level = (
+                baseline.request_level
+                if baseline.request_level not in {"unsupported", "broad_clarification"}
+                else "single_fact"
+            )
+            coverage = "داور شواهد در دسترس نبود؛ نتایج برتر بازیابی حفظ شدند."
+            answer_instruction = "فقط با شواهد منتخب به پرسش فعلی پاسخ دهید."
+            judge_status = "fallback"
+        else:
+            selected = [item for item in results if item.chunk_id in selected_ids]
+            selected.sort(key=lambda item: selected_ids.index(item.chunk_id))
+            classification = str(judge_result["classification"])
+            request_level = str(judge_result.get("request_level", baseline.request_level))
+            coverage = str(judge_result.get("coverage", ""))
+            answer_instruction = str(judge_result.get("answer_instruction", ""))
+            judge_status = "judged"
+
+        decision = knowledge_scope.apply_evidence_judgment(
+            baseline,
+            classification,
+            request_level,
+            "\n".join(item for item in (coverage, answer_instruction) if item),
+        )
         relevance = classify_task_relevance(state["task_id"], decision.topic_ids)
-        # A reminder is useful only after sustained drift. One adjacent question,
-        # a greeting, or a natural follow-up must not make the assistant robotic.
         recent_user_turns = [
             item.get("content", "")
             for item in state.get("history", [])[-6:]
@@ -284,48 +399,22 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             else ""
         )
         direct_answer = knowledge_scope.direct_response(decision)
-        if direct_answer is not None:
-            return {
-                "retrieval_query": retrieval_query,
-                "retrieval_queries": retrieval_queries,
-                "retrieved": [],
-                "knowledge_classification": decision.classification,
-                "knowledge_guidance": decision.guidance,
-                "closed_world_context": closed_world,
-                "task_relevance": relevance,
-                "task_reminder": reminder,
-                "request_level": decision.request_level,
-                "response_contract": decision.response_contract,
-                "request_decision": decision,
-                "direct_answer": direct_answer,
-            }
-        if hasattr(retriever, "search_many"):
-            results = retriever.search_many(
-                retrieval_queries,
-                retrieval_scope,
-                preferred_node_types=decision.preferred_node_types,
-                limit=decision.retrieval_limit,
-            )
-        else:
-            results = retriever.search(
-                retrieval_query,
-                retrieval_scope,
-                preferred_node_types=decision.preferred_node_types,
-                limit=decision.retrieval_limit,
-            )
         return {
-            "retrieval_query": retrieval_query,
-            "retrieval_queries": retrieval_queries,
-            "retrieved": results,
+            "retrieved": selected,
             "knowledge_classification": decision.classification,
             "knowledge_guidance": decision.guidance,
-            "closed_world_context": closed_world,
+            "closed_world_context": knowledge_scope.closed_world_context(
+                state.get("retrieval_query", state["query"])
+            ),
             "task_relevance": relevance,
             "task_reminder": reminder,
             "request_level": decision.request_level,
             "response_contract": decision.response_contract,
             "request_decision": decision,
-            "projected_context": knowledge_scope.project_evidence(results, decision),
+            "direct_answer": direct_answer or "",
+            "projected_context": knowledge_scope.project_evidence(selected, decision),
+            "evidence_judge_status": judge_status,
+            "evidence_coverage": coverage,
         }
 
     def draft_answer(state: RagState) -> dict:
@@ -456,10 +545,12 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
 
     graph = StateGraph(RagState)
     graph.add_node("retrieve", retrieve)
+    graph.add_node("judge_evidence", judge_evidence)
     graph.add_node("draft_answer", draft_answer)
     graph.add_node("verify_answer", verify_answer)
     graph.add_edge(START, "retrieve")
-    graph.add_edge("retrieve", "draft_answer")
+    graph.add_edge("retrieve", "judge_evidence")
+    graph.add_edge("judge_evidence", "draft_answer")
     graph.add_edge("draft_answer", "verify_answer")
     graph.add_edge("verify_answer", END)
     return graph.compile()

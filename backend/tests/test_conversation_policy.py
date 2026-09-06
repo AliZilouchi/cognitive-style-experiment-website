@@ -2,9 +2,12 @@ import unittest
 
 from sepid_rag.graph import (
     clarification_for_incomplete_query,
+    extract_evidence_decision,
     extract_verified_answer,
 )
 from sepid_rag.prompts import (
+    EVIDENCE_JUDGE_PROMPT,
+    EVIDENCE_JUDGE_PROMPT_VERSION,
     SYSTEM_PROMPT,
     SYSTEM_PROMPT_VERSION,
     VERIFIER_PROMPT,
@@ -35,7 +38,7 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v11-hybrid-conversation")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v12-post-retrieval-judge")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
@@ -78,7 +81,7 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
-        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v4-claim-evidence")
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v5-post-judge")
         self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
         self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
         self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
@@ -91,6 +94,16 @@ class ConversationPolicyTests(unittest.TestCase):
             "پاسخ اصلاح‌شده",
         )
         self.assertIsNone(extract_verified_answer("پاسخ بدون برچسب"))
+
+    def test_post_retrieval_judge_envelope_is_strictly_extracted(self):
+        self.assertEqual(EVIDENCE_JUDGE_PROMPT_VERSION, "sepid-fa-evidence-judge-v1")
+        self.assertIn("پس از بازیابی", EVIDENCE_JUDGE_PROMPT)
+        parsed = extract_evidence_decision(
+            '<evidence_decision>{"classification":"supported",'
+            '"request_level":"single_fact","selected_chunk_ids":["A"]}</evidence_decision>'
+        )
+        self.assertEqual(parsed["selected_chunk_ids"], ["A"])
+        self.assertIsNone(extract_evidence_decision("not-json"))
 
 
 if __name__ == "__main__":

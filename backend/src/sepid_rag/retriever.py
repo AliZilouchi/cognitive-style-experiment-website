@@ -136,6 +136,9 @@ class CorpusRetriever:
             [
                 0.82 * ((float(semantic_scores[index]) + 1.0) / 2.0)
                 + 0.18 * lexical_score(index)
+                + (0.035 if self.documents[index].node_type in {"fact", "comparison"} else 0.0)
+                + (0.015 if self.documents[index].node_type == "index" else 0.0)
+                - (0.045 if self.documents[index].chunk_id.endswith("SOURCE-FALLBACK") else 0.0)
                 for index in range(len(self.documents))
             ],
             dtype=np.float32,
@@ -238,19 +241,32 @@ class CorpusRetriever:
             return self.search(cleaned[0], task_id, preferred_node_types, limit)
 
         fused: dict[str, tuple[SearchResult, float]] = {}
+        per_query_results: list[list[SearchResult]] = []
         per_query_limit = min(limit or self.top_k, self.top_k)
         for query in cleaned[:4]:
-            for item in self.search(
+            items = self.search(
                 query,
                 task_id,
                 preferred_node_types=preferred_node_types,
                 limit=per_query_limit,
-            ):
+            )
+            per_query_results.append(items)
+            for item in items:
                 previous = fused.get(item.chunk_id)
                 fused_score = (previous[1] if previous else 0.0) + 1.0 / (60 + item.rank)
                 representative = item if previous is None or item.score > previous[0].score else previous[0]
                 fused[item.chunk_id] = (representative, fused_score)
 
         result_limit = min(limit or self.top_k, self.top_k, len(fused))
-        ordered = sorted(fused.values(), key=lambda pair: pair[1], reverse=True)[:result_limit]
+        # Reserve one relevant candidate for each explicit sub-question before
+        # filling the remaining budget by fused rank.
+        reserved_ids: list[str] = []
+        for items in per_query_results:
+            first_new = next((item for item in items if item.chunk_id not in reserved_ids), None)
+            if first_new is not None:
+                reserved_ids.append(first_new.chunk_id)
+        ranked = sorted(fused.values(), key=lambda pair: pair[1], reverse=True)
+        reserved = [fused[chunk_id] for chunk_id in reserved_ids[:result_limit]]
+        ordered = reserved + [pair for pair in ranked if pair[0].chunk_id not in reserved_ids]
+        ordered = ordered[:result_limit]
         return [replace(item, rank=rank) for rank, (item, _) in enumerate(ordered, start=1)]

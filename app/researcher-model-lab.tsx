@@ -141,7 +141,8 @@ export default function ResearcherModelLab({ language }: { language: "fa" | "en"
       <div className="model-lab-question"><span>{index + 1}</span><p>{turn.question}</p></div>
       {turn.response ? <div className="model-lab-answer">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{turn.response.answer}</ReactMarkdown>
-        <footer><span>{turn.elapsedMs.toFixed(0)} ms</span><span>{turn.response.prompt_version}</span><span>{turn.response.knowledge_scope?.classification || "unknown"}</span><span>{turn.response.verification?.status || "unknown"}</span></footer>
+        <footer><span>{turn.elapsedMs.toFixed(0)} ms</span><span>{turn.response.prompt_version}</span><span>{turn.response.knowledge_scope?.classification || "unknown"}</span><span>{turn.response.knowledge_scope?.judge_status || "unknown"}</span><span>{turn.response.verification?.status || "unknown"}</span></footer>
+        {turn.response.knowledge_scope?.coverage && <p className="model-lab-coverage">{turn.response.knowledge_scope.coverage}</p>}
         <details><summary>{fa ? `شواهد بازیابی‌شده (${turn.response.sources.length})` : `Retrieved evidence (${turn.response.sources.length})`}</summary><ul>{turn.response.sources.map((source) => <li key={`${source.source_id}-${source.chunk_id}`}>{source.chunk_id || source.source_id} · {source.topic || "—"} · {source.score.toFixed(3)}</li>)}</ul></details>
       </div> : <p className="model-lab-error">{fa ? "خطا: " : "Error: "}{turn.error}</p>}
     </article>)}</div>}

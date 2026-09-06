@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from dataclasses import replace
 from pathlib import Path
 
 from .normalization import normalize_persian
@@ -190,6 +191,42 @@ class KnowledgeScope:
         if decision.request_level == "broad_clarification":
             return str(self.data["request_planner"]["broad_clarification_response"])
         return None
+
+    def apply_evidence_judgment(
+        self,
+        decision: ScopeDecision,
+        classification: str,
+        request_level: str,
+        judge_guidance: str,
+    ) -> ScopeDecision:
+        """Apply a post-retrieval decision without reopening private corpus rules."""
+        allowed_levels = {
+            "single_fact",
+            "single_entity",
+            "category_overview",
+            "comparison",
+            "multi_part",
+            "calculation_limited",
+            "broad_clarification",
+            "unsupported",
+        }
+        level = request_level if request_level in allowed_levels else decision.request_level
+        if classification == "unsupported":
+            level = "unsupported"
+        contract = dict(self._contracts.get(level, {}))
+        instruction = str(contract.get("instruction", decision.response_contract))
+        guidance = "\n".join(
+            item for item in (decision.guidance, f"داوری شواهد: {judge_guidance}") if item
+        )
+        return replace(
+            decision,
+            classification=classification,
+            request_level=level,
+            retrieval_limit=int(contract.get("retrieval_limit", decision.retrieval_limit)),
+            preferred_node_types=tuple(contract.get("preferred_node_types", [])),
+            response_contract=instruction,
+            guidance=guidance,
+        )
 
     def project_evidence(self, results: list, decision: ScopeDecision) -> str:
         """Expose only evidence appropriate for the chosen request level.

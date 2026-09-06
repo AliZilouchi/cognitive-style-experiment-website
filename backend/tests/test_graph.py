@@ -24,7 +24,7 @@ class _CompiledGraph:
 
     def invoke(self, state):
         result = dict(state)
-        for name in ("retrieve", "draft_answer", "verify_answer"):
+        for name in ("retrieve", "judge_evidence", "draft_answer", "verify_answer"):
             result.update(self.nodes[name](result))
         return result
 
@@ -52,6 +52,14 @@ class _FakeChat:
     def invoke(self, messages):
         self.calls.append(messages)
         if len(self.calls) == 1:
+            return SimpleNamespace(content=(
+                '<evidence_decision>{"classification":"supported",'
+                '"request_level":"single_fact",'
+                '"selected_chunk_ids":["SHARED-FACT-ISLAND-ACCESS"],'
+                '"coverage":"پوشش مستقیم",'
+                '"answer_instruction":"فقط مسیر ورود را بگو"}</evidence_decision>'
+            ))
+        if len(self.calls) == 2:
             return SimpleNamespace(content="جزیره فرودگاه مسافری دارد.")
         return SimpleNamespace(
             content=(
@@ -65,6 +73,8 @@ class _Retrieved:
     source_id = "E12"
     source_ids = ("E12",)
     chunk_id = "SHARED-FACT-ISLAND-ACCESS"
+    node_type = "fact"
+    topic = "transport_access"
     text = "جزیره فرودگاه مسافری ندارد و راه معمول ورود، شناور مسافری از بندر آفتاب است."
 
 
@@ -146,6 +156,7 @@ class RetrievalQueryTests(unittest.TestCase):
             llm_provider="avalai",
             llm_model="fake-model",
             llm_max_tokens=700,
+            top_k=8,
             avalai_api_key="fake-key",
             avalai_base_url="https://example.invalid/v1",
             enable_response_verifier=True,
@@ -168,7 +179,7 @@ class RetrievalQueryTests(unittest.TestCase):
             result = graph.invoke(
                 {"query": "چطور به جزیره برسیم؟", "task_id": "free_chat", "history": []}
             )
-        self.assertEqual(len(_FakeChat.calls), 2)
+        self.assertEqual(len(_FakeChat.calls), 3)
         self.assertEqual(result["verification_status"], "verified_revised")
         self.assertIn("فرودگاه مسافری ندارد", result["answer"])
 

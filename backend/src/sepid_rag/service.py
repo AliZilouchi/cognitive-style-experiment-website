@@ -9,7 +9,11 @@ from .corpus import load_allowlisted_corpus
 from .embeddings import create_embeddings
 from .graph import build_graph
 from .knowledge_scope import KnowledgeScope
-from .prompts import SYSTEM_PROMPT_VERSION, VERIFIER_PROMPT_VERSION
+from .prompts import (
+    EVIDENCE_JUDGE_PROMPT_VERSION,
+    SYSTEM_PROMPT_VERSION,
+    VERIFIER_PROMPT_VERSION,
+)
 from .retriever import CorpusRetriever
 
 
@@ -73,6 +77,7 @@ class RagService:
             "retrieval": {
                 "requested_top_k": self.settings.top_k,
                 "returned_chunks": len(retrieved),
+                "candidate_chunks": len(result.get("raw_retrieved", retrieved)),
                 "task_id": task_id,
                 "embedding_model": self.retriever.embeddings.model_identity,
                 "query": result["retrieval_query"],
@@ -83,6 +88,9 @@ class RagService:
                 "version": self.knowledge_scope.version,
                 "classification": result.get("knowledge_classification", "unknown"),
                 "task_relevance": result.get("task_relevance", "unknown"),
+                "judge_status": result.get("evidence_judge_status", "unknown"),
+                "judge_version": EVIDENCE_JUDGE_PROMPT_VERSION,
+                "coverage": result.get("evidence_coverage", ""),
             },
             "verification": {
                 "enabled": self.settings.enable_response_verifier,

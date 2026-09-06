@@ -1,34 +1,46 @@
-# Model pipeline + researcher scenario lab (v11)
+# Post-retrieval Knowledge Index v12
 
-Copy this folder over the root of `cognitive-style-experiment-website`, preserving paths.
+Copy the contents of this folder over the repository root, preserving paths.
 
-## What changes
+## New pipeline
 
-- Hybrid semantic + lexical retrieval for names and exact facts.
-- Separate retrieval for explicit multi-part questions, fused into one bounded evidence set.
-- Context resolution for follow-ups such as «حالا جواب بده».
-- Social turns such as «سلام» and «ممنون» bypass RAG.
-- Task reminders appear only after sustained topic drift.
-- Stronger evidence verifier for unsupported value judgments.
-- Researcher-only scenario lab with editable scenarios and ordered questions.
-- The lab runs the real `/api/rag/chat` path with conversation history.
-- Lab scenarios and results are memory-only and disappear on page exit/reload.
+1. Deterministic preprocessor for social messages, normalization, follow-up context, and explicit question splitting.
+2. Open hybrid retrieval using the configured `TOP_K` ceiling.
+3. LLM evidence judge after retrieval: coverage decision, noise removal, Request Level, and generator instruction.
+4. Answer generator using only selected evidence.
+5. Final verifier.
 
-Permanent default scenarios are configured in:
+The former pre-retrieval Knowledge Index no longer blocks unknown aliases. A question such as «جشن یا رویداد چه زمانی است؟» reaches retrieval before support is decided.
 
-`app/model-evaluation-scenarios.ts`
+## Retrieval changes
+
+- Curated `fact` and `comparison` chunks receive a small rank bonus.
+- `SOURCE-FALLBACK` chunks receive a small penalty but remain available.
+- Multi-part retrieval reserves at least one candidate for each explicit sub-question.
+- The post-retrieval judge selects at most six final evidence chunks.
+
+## Researcher model lab
+
+The lab now displays:
+
+- evidence-judge status;
+- coverage/gap explanation;
+- only the evidence selected for answer generation.
+
+All lab state remains memory-only.
 
 ## Deployment
 
-No SQL migration, dependency, or new environment variable is required.
+- Keep backend `TOP_K=8`.
+- No SQL migration, dependency, or new environment variable is required.
+- Redeploy the RAG backend and frontend from the same commit.
 
-Commit all included files, push once, then redeploy both Vercel projects from the same commit:
+## Important time-limit note
 
-1. RAG backend project (because `backend/` changed).
-2. Website/frontend project (because `app/` changed).
+This update intentionally does not contain or modify `app/swts-config.ts`. The existing one-hour SWTS time limit remains unchanged.
 
-## Validation completed
+## Validation
 
-- 60 backend tests passed.
+- 61 backend tests passed.
 - TypeScript typecheck passed.
 - Next.js production build passed.
