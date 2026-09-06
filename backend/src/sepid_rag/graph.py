@@ -7,7 +7,7 @@ from typing import TypedDict
 from .normalization import normalize_persian
 from .prompts import SYSTEM_PROMPT, VERIFIER_PROMPT, format_context
 from .task_contexts import classify_task_relevance, format_task_context, task_reminder
-from .knowledge_scope import KnowledgeScope
+from .knowledge_scope import KnowledgeScope, ScopeDecision
 
 
 class RagState(TypedDict, total=False):
@@ -25,6 +25,10 @@ class RagState(TypedDict, total=False):
     closed_world_context: str
     task_relevance: str
     task_reminder: str
+    request_level: str
+    response_contract: str
+    request_decision: ScopeDecision
+    direct_answer: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -214,11 +218,14 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         retrieval_query = build_retrieval_query(
             state["query"], state.get("history", []), entities
         )
-        decision = knowledge_scope.classify(retrieval_query, entities)
+        decision = knowledge_scope.classify(
+            state["query"], entities, contextual_query=retrieval_query
+        )
         closed_world = knowledge_scope.closed_world_context(retrieval_query)
         relevance = classify_task_relevance(state["task_id"], decision.topic_ids)
         reminder = task_reminder(state["task_id"]) if relevance == "outside_task" else ""
-        if decision.classification in {"outside_world", "unknown_topic"}:
+        direct_answer = knowledge_scope.direct_response(decision)
+        if direct_answer is not None:
             return {
                 "retrieval_query": retrieval_query,
                 "retrieved": [],
@@ -227,15 +234,27 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "closed_world_context": closed_world,
                 "task_relevance": relevance,
                 "task_reminder": reminder,
+                "request_level": decision.request_level,
+                "response_contract": decision.response_contract,
+                "request_decision": decision,
+                "direct_answer": direct_answer,
             }
         return {
             "retrieval_query": retrieval_query,
-            "retrieved": retriever.search(retrieval_query, retrieval_scope),
+            "retrieved": retriever.search(
+                retrieval_query,
+                retrieval_scope,
+                preferred_node_types=decision.preferred_node_types,
+                limit=decision.retrieval_limit,
+            ),
             "knowledge_classification": decision.classification,
             "knowledge_guidance": decision.guidance,
             "closed_world_context": closed_world,
             "task_relevance": relevance,
             "task_reminder": reminder,
+            "request_level": decision.request_level,
+            "response_contract": decision.response_contract,
+            "request_decision": decision,
         }
 
     def draft_answer(state: RagState) -> dict:
@@ -245,10 +264,10 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "answer": state["clarification"],
                 "verification_status": "not_needed",
             }
-        if state.get("knowledge_classification") in {"outside_world", "unknown_topic"}:
+        if state.get("direct_answer"):
             return {
-                "draft_answer": knowledge_scope.outside_world_response,
-                "answer": knowledge_scope.outside_world_response,
+                "draft_answer": state["direct_answer"],
+                "answer": state["direct_answer"],
                 "verification_status": "not_needed",
             }
         results = state["retrieved"]
@@ -278,6 +297,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                     f"شناسهٔ فعالیت فعلی: {state['task_id']}\n"
                     f"زمینه و مرز فعالیت:\n{format_task_context(state['task_id'])}\n\n"
                     f"تصمیم نمایه دانش:\n{state.get('knowledge_guidance', '')}\n\n"
+                    f"قرارداد الزام‌آور پاسخ:\n{state.get('response_contract', '')}\n\n"
                     f"ارتباط با فعالیت فعلی: {state.get('task_relevance', 'unknown')}\n"
                     f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
                     f"منابع بازیابی‌شده:\n{format_context(results)}\n\n"
@@ -294,9 +314,12 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             state.get("clarification")
             or settings.llm_provider == "echo"
             or not settings.enable_response_verifier
-            or state.get("knowledge_classification") in {"outside_world", "unknown_topic"}
+            or state.get("direct_answer")
         ):
             final_answer = state["draft_answer"]
+            decision = state.get("request_decision")
+            if decision and not knowledge_scope.answer_passes_contract(final_answer, decision):
+                final_answer = knowledge_scope.contract_fallback(decision)
             if state.get("task_reminder") and state["task_reminder"] not in final_answer:
                 final_answer = f"{final_answer}\n\n{state['task_reminder']}"
             return {
@@ -311,6 +334,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 content=(
                     f"زمینه و مرز فعالیت:\n{format_task_context(state['task_id'])}\n\n"
                     f"تصمیم نمایه دانش:\n{state.get('knowledge_guidance', '')}\n\n"
+                    f"قرارداد الزام‌آور پاسخ:\n{state.get('response_contract', '')}\n\n"
                     f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
                     f"پرسش فعلی:\n{state['query']}\n\n"
                     f"منابع مجاز:\n{evidence}\n\n"
@@ -328,12 +352,18 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             verified = None
         if verified is None:
             final_answer = state["draft_answer"]
+            decision = state.get("request_decision")
+            if decision and not knowledge_scope.answer_passes_contract(final_answer, decision):
+                final_answer = knowledge_scope.contract_fallback(decision)
             if state.get("task_reminder") and state["task_reminder"] not in final_answer:
                 final_answer = f"{final_answer}\n\n{state['task_reminder']}"
             return {
                 "answer": final_answer,
                 "verification_status": "fallback_to_draft",
             }
+        decision = state.get("request_decision")
+        if decision and not knowledge_scope.answer_passes_contract(verified, decision):
+            verified = knowledge_scope.contract_fallback(decision)
         if state.get("task_reminder") and state["task_reminder"] not in verified:
             verified = f"{verified}\n\n{state['task_reminder']}"
         return {

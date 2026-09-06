@@ -65,7 +65,7 @@ class _Retrieved:
 class _Retriever:
     documents = []
 
-    def search(self, query, task_id):
+    def search(self, query, task_id, preferred_node_types=(), limit=None):
         return [_Retrieved()]
 
 

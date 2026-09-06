@@ -35,11 +35,12 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v8-task-aware-conversation")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v9-request-contracts")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
         self.assertIn("پاسخ را با پیشنهاد ادامه", SYSTEM_PROMPT)
+        self.assertIn("قرارداد پاسخ", SYSTEM_PROMPT)
 
     def test_each_research_task_has_problem_objective_and_neutral_boundaries(self):
         self.assertEqual(TASK_CONTEXT_VERSION, "sepid-swts-task-context-v1")
@@ -77,11 +78,12 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
-        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v1")
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v2-request-contracts")
         self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
         self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
         self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
         self.assertIn("سیاست مرزبندی فعالیت", VERIFIER_PROMPT)
+        self.assertIn("سطح درخواست", VERIFIER_PROMPT)
 
     def test_verified_answer_envelope_is_strictly_extracted(self):
         self.assertEqual(

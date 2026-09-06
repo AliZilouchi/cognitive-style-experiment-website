@@ -87,18 +87,35 @@ class CorpusRetriever:
             {source_id for document in self.documents for source_id in document.source_ids}
         )
 
-    def search(self, original_query: str, task_id: str | None = None) -> list[SearchResult]:
+    def search(
+        self,
+        original_query: str,
+        task_id: str | None = None,
+        preferred_node_types: tuple[str, ...] = (),
+        limit: int | None = None,
+    ) -> list[SearchResult]:
         query = normalize_persian(original_query)
         query_tokens = set(query.split())
         vector = np.asarray(self.embeddings.embed_query(query), dtype=np.float32)
         scores = self._matrix @ vector
-        eligible = [
+        task_eligible = [
             index
             for index, document in enumerate(self.documents)
             if task_id is None or task_id in document.task_ids
         ]
+        typed_eligible = [
+            index
+            for index in task_eligible
+            if not preferred_node_types
+            or self.documents[index].node_type in preferred_node_types
+        ]
+        # Never turn a useful request into an empty retrieval merely because an
+        # older corpus version lacks the preferred node type.
+        eligible = typed_eligible or task_eligible
         if not eligible:
             return []
+
+        result_limit = min(limit or self.top_k, self.top_k, len(eligible))
 
         best_score = max(float(scores[index]) for index in eligible)
         candidates = [
@@ -121,19 +138,19 @@ class CorpusRetriever:
         # When comparison anchors alone fill the retrieval budget (for example
         # weather + cost + attractions), prefer them over a thin index.  When
         # room remains, retain the index because it provides entity coverage.
-        if len(comparison_anchors) >= self.top_k:
+        if len(comparison_anchors) >= result_limit:
             anchors = [
                 index for index in anchors if self.documents[index].node_type != "index"
             ]
         anchors.sort(key=lambda index: (coverage_matches(index), float(scores[index])), reverse=True)
-        selected: list[int] = anchors[: self.top_k]
+        selected: list[int] = anchors[:result_limit]
         source_counts: dict[str, int] = {}
         for index in selected:
             source_id = self.documents[index].source_id
             source_counts[source_id] = source_counts.get(source_id, 0) + 1
         candidates = [index for index in candidates if index not in selected]
 
-        while candidates and len(selected) < self.top_k:
+        while candidates and len(selected) < result_limit:
             allowed = [
                 index
                 for index in candidates
