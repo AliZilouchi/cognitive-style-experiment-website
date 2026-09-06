@@ -38,6 +38,7 @@ export type RagChatResponse = {
     task_id: RagTaskId;
     embedding_model: string;
     query: string;
+    queries?: string[];
   };
   prompt_version: string;
   knowledge_scope?: {

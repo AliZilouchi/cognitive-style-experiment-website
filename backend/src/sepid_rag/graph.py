@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TypedDict
 
 from .normalization import normalize_persian
@@ -30,6 +31,8 @@ class RagState(TypedDict, total=False):
     request_decision: ScopeDecision
     direct_answer: str
     projected_context: str
+    retrieval_queries: list[str]
+    social_answer: str
 
 
 _FOLLOW_UP_MARKERS = {
@@ -63,6 +66,34 @@ _INCOMPLETE_ENDINGS = {
     "یا",
     "و",
 }
+
+_SOCIAL_RESPONSES = {
+    "سلام": "سلام! در خدمتم.",
+    "درود": "درود! در خدمتم.",
+    "ممنون": "خواهش می‌کنم.",
+    "مرسی": "خواهش می‌کنم.",
+    "متشکرم": "خواهش می‌کنم.",
+    "سپاس": "خواهش می‌کنم.",
+    "خداحافظ": "خداحافظ، موفق باشید.",
+}
+
+
+def social_response(query: str) -> str | None:
+    """Handle tiny social turns without pretending the corpus lacks an answer."""
+    normalized = normalize_persian(query).strip(" ؟?!،,.;:")
+    return _SOCIAL_RESPONSES.get(normalized)
+
+
+def build_retrieval_queries(query: str, resolved_query: str) -> list[str]:
+    """Split only explicit multi-part messages; do not over-segment normal prose."""
+    parts = [
+        part.strip(" \n\t-–—؟?")
+        for part in re.split(r"[؟?]+|\n+", normalize_persian(query))
+        if part.strip(" \n\t-–—؟?")
+    ]
+    if len(parts) <= 1:
+        return [resolved_query]
+    return parts[:4]
 
 
 def clarification_for_incomplete_query(query: str) -> str | None:
@@ -202,6 +233,14 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         )
 
     def retrieve(state: RagState) -> dict:
+        social = social_response(state["query"])
+        if social:
+            return {
+                "retrieval_query": state["query"],
+                "retrieval_queries": [],
+                "retrieved": [],
+                "social_answer": social,
+            }
         clarification = clarification_for_incomplete_query(state["query"])
         if clarification:
             return {
@@ -219,16 +258,36 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         retrieval_query = build_retrieval_query(
             state["query"], state.get("history", []), entities
         )
+        retrieval_queries = build_retrieval_queries(state["query"], retrieval_query)
         decision = knowledge_scope.classify(
             state["query"], entities, contextual_query=retrieval_query
         )
         closed_world = knowledge_scope.closed_world_context(retrieval_query)
         relevance = classify_task_relevance(state["task_id"], decision.topic_ids)
-        reminder = task_reminder(state["task_id"]) if relevance == "outside_task" else ""
+        # A reminder is useful only after sustained drift. One adjacent question,
+        # a greeting, or a natural follow-up must not make the assistant robotic.
+        recent_user_turns = [
+            item.get("content", "")
+            for item in state.get("history", [])[-6:]
+            if item.get("role") == "user"
+        ]
+        prior_outside = sum(
+            1
+            for item in recent_user_turns[-2:]
+            if classify_task_relevance(
+                state["task_id"], knowledge_scope.classify(item, entities).topic_ids
+            ) == "outside_task"
+        )
+        reminder = (
+            task_reminder(state["task_id"])
+            if relevance == "outside_task" and prior_outside >= 2
+            else ""
+        )
         direct_answer = knowledge_scope.direct_response(decision)
         if direct_answer is not None:
             return {
                 "retrieval_query": retrieval_query,
+                "retrieval_queries": retrieval_queries,
                 "retrieved": [],
                 "knowledge_classification": decision.classification,
                 "knowledge_guidance": decision.guidance,
@@ -240,14 +299,23 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "request_decision": decision,
                 "direct_answer": direct_answer,
             }
-        results = retriever.search(
-            retrieval_query,
-            retrieval_scope,
-            preferred_node_types=decision.preferred_node_types,
-            limit=decision.retrieval_limit,
-        )
+        if hasattr(retriever, "search_many"):
+            results = retriever.search_many(
+                retrieval_queries,
+                retrieval_scope,
+                preferred_node_types=decision.preferred_node_types,
+                limit=decision.retrieval_limit,
+            )
+        else:
+            results = retriever.search(
+                retrieval_query,
+                retrieval_scope,
+                preferred_node_types=decision.preferred_node_types,
+                limit=decision.retrieval_limit,
+            )
         return {
             "retrieval_query": retrieval_query,
+            "retrieval_queries": retrieval_queries,
             "retrieved": results,
             "knowledge_classification": decision.classification,
             "knowledge_guidance": decision.guidance,
@@ -261,6 +329,12 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         }
 
     def draft_answer(state: RagState) -> dict:
+        if state.get("social_answer"):
+            return {
+                "draft_answer": state["social_answer"],
+                "answer": state["social_answer"],
+                "verification_status": "not_needed",
+            }
         if state.get("clarification"):
             return {
                 "draft_answer": state["clarification"],
@@ -304,6 +378,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                     f"ارتباط با فعالیت فعلی: {state.get('task_relevance', 'unknown')}\n"
                     f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
                     f"شواهد مجاز و متناسب با سطح درخواست:\n{state.get('projected_context', format_context(results)) or 'داده پایه مرتبطی بازیابی نشد.'}\n\n"
+                    f"صورت مستقل و حل‌شدهٔ پرسش برای فهم ارجاع‌ها:\n{state.get('retrieval_query', state['query'])}\n\n"
                     f"پرسش فعلی کاربر:\n{state['query']}"
                 )
             )
@@ -315,6 +390,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
     def verify_answer(state: RagState) -> dict:
         if (
             state.get("clarification")
+            or state.get("social_answer")
             or settings.llm_provider == "echo"
             or not settings.enable_response_verifier
             or state.get("direct_answer")

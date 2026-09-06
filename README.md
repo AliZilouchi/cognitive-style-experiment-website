@@ -1,28 +1,34 @@
-# Sepid RAG evidence-projection v5
+# Model pipeline + researcher scenario lab (v11)
 
-Incremental backend patch for installations that already include request-planner v4.
+Copy this folder over the root of `cognitive-style-experiment-website`, preserving paths.
 
-## Apply
+## What changes
 
-Copy the included `backend` directory over the repository's existing `backend` directory, preserving paths. No frontend files, SQL migrations, dependencies, or environment-variable changes are required.
+- Hybrid semantic + lexical retrieval for names and exact facts.
+- Separate retrieval for explicit multi-part questions, fused into one bounded evidence set.
+- Context resolution for follow-ups such as «حالا جواب بده».
+- Social turns such as «سلام» and «ممنون» bypass RAG.
+- Task reminders appear only after sustained topic drift.
+- Stronger evidence verifier for unsupported value judgments.
+- Researcher-only scenario lab with editable scenarios and ordered questions.
+- The lab runs the real `/api/rag/chat` path with conversation history.
+- Lab scenarios and results are memory-only and disappear on page exit/reload.
 
-Commit, push, and redeploy the RAG API project without build cache.
+Permanent default scenarios are configured in:
 
-## Changes
+`app/model-evaluation-scenarios.ts`
 
-- Category overview requests receive a structured minimal evidence projection instead of full profile chunks.
-- Overview output is validated for prices, percentages, booking rules, service details, and numeric leakage.
-- Invalid overview output falls back to the structured overview rather than exposing extra facts.
-- Accommodation calculation requests cannot retrieve the generic seasonal tourism-cost percentage.
-- Explanation, cultural, follow-up, multi-part, and explicit comparison modes retain normal generative flexibility.
-- Prompt and knowledge-index versions are advanced for research reproducibility.
+## Deployment
 
-## Verification
+No SQL migration, dependency, or new environment variable is required.
 
-From `backend` run:
+Commit all included files, push once, then redeploy both Vercel projects from the same commit:
 
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-```
+1. RAG backend project (because `backend/` changed).
+2. Website/frontend project (because `app/` changed).
 
-Expected: 58 tests pass.
+## Validation completed
+
+- 60 backend tests passed.
+- TypeScript typecheck passed.
+- Next.js production build passed.

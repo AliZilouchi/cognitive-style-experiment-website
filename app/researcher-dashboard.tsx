@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { SUPABASE_KEY, SUPABASE_URL } from "./runtime-config";
+import ResearcherModelLab from "./researcher-model-lab";
 
 type Language = "en" | "fa";
 type AuthSession = {
@@ -700,6 +701,8 @@ export default function ResearcherDashboard({
       </form>
       <div className="card export-tool"><p className="card-kicker">{t.exports}</p><p className="muted">{language === "fa" ? "خروجی خلاصه، داده‌های آزمون، فرم‌ها یا گفت‌وگوهای SWTS را دریافت کنید." : "Download participant, test, form, or SWTS conversation data."}</p><button className="secondary" onClick={exportParticipantSummary}>{t.exportSummary}</button><button className="secondary" onClick={() => void exportAllTrials()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportTrials}</button><button className="secondary" onClick={() => void exportAllSwts()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportSwts}</button><button className="secondary" onClick={() => void exportAllForms()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportForms}</button></div>
     </div>
+
+    <ResearcherModelLab language={language} />
 
     <div className="card participant-monitor">
       <div className="monitor-heading"><div><p className="card-kicker">{t.participants}</p><strong>{filteredParticipants.length}</strong></div><div className="monitor-filters"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} /><select value={phase} onChange={(event) => setPhase(event.target.value)}><option value="all">{t.allPhases}</option><option value="introduction">Introduction</option><option value="demographics">Demographics</option><option value="test">E-CSA-WA</option><option value="think_aloud">Think aloud</option><option value="pre_task">Pre-task</option><option value="swts">SWTS</option><option value="post_task">Post-task</option><option value="comparative">Final comparison</option><option value="complete">Complete</option></select></div></div>

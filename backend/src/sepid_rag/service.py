@@ -76,6 +76,7 @@ class RagService:
                 "task_id": task_id,
                 "embedding_model": self.retriever.embeddings.model_identity,
                 "query": result["retrieval_query"],
+                "queries": result.get("retrieval_queries", [result["retrieval_query"]]),
             },
             "prompt_version": SYSTEM_PROMPT_VERSION,
             "knowledge_scope": {

@@ -3,7 +3,13 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from sepid_rag.graph import build_graph, build_retrieval_query, retrieval_scope_for_task
+from sepid_rag.graph import (
+    build_graph,
+    build_retrieval_queries,
+    build_retrieval_query,
+    retrieval_scope_for_task,
+    social_response,
+)
 from sepid_rag.knowledge_scope import KnowledgeScope
 
 
@@ -70,6 +76,17 @@ class _Retriever:
 
 
 class RetrievalQueryTests(unittest.TestCase):
+    def test_social_turns_bypass_retrieval(self):
+        self.assertEqual(social_response("سلام"), "سلام! در خدمتم.")
+        self.assertIsNone(social_response("آب و هوای جزیره چگونه است؟"))
+
+    def test_explicit_multi_part_query_is_split(self):
+        parts = build_retrieval_queries(
+            "کدام اقامتگاه نزدیک بازار است؟ کدام‌یک صبحانه دارد؟",
+            "unused",
+        )
+        self.assertEqual(len(parts), 2)
+
     def test_every_participant_context_searches_the_complete_corpus(self):
         self.assertIsNone(retrieval_scope_for_task("free_chat"))
         self.assertIsNone(retrieval_scope_for_task("task_1"))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -97,7 +98,7 @@ class CorpusRetriever:
         query = normalize_persian(original_query)
         query_tokens = set(query.split())
         vector = np.asarray(self.embeddings.embed_query(query), dtype=np.float32)
-        scores = self._matrix @ vector
+        semantic_scores = self._matrix @ vector
         task_eligible = [
             index
             for index, document in enumerate(self.documents)
@@ -116,6 +117,29 @@ class CorpusRetriever:
             return []
 
         result_limit = min(limit or self.top_k, self.top_k, len(eligible))
+
+        # Blend semantic similarity with a small deterministic lexical signal.
+        # Exact Persian names/numbers and manually-authored coverage terms should
+        # survive even when the hosted embedding model paraphrases them poorly.
+        def lexical_score(index: int) -> float:
+            document = self.documents[index]
+            document_tokens = set(normalize_persian(document.retrieval_text).split())
+            overlap = len(query_tokens & document_tokens) / max(1, len(query_tokens))
+            phrase_hits = sum(
+                1
+                for term in document.coverage_terms
+                if normalize_persian(term) in query
+            )
+            return min(1.0, overlap + min(0.45, phrase_hits * 0.15))
+
+        scores = np.asarray(
+            [
+                0.82 * ((float(semantic_scores[index]) + 1.0) / 2.0)
+                + 0.18 * lexical_score(index)
+                for index in range(len(self.documents))
+            ],
+            dtype=np.float32,
+        )
 
         best_score = max(float(scores[index]) for index in eligible)
         candidates = [
@@ -194,3 +218,39 @@ class CorpusRetriever:
             )
             for rank, index in enumerate(selected, start=1)
         ]
+
+    def search_many(
+        self,
+        queries: Sequence[str],
+        task_id: str | None = None,
+        preferred_node_types: tuple[str, ...] = (),
+        limit: int | None = None,
+    ) -> list[SearchResult]:
+        """Retrieve each explicit sub-question and fuse results by reciprocal rank.
+
+        A multi-part participant message no longer spends its entire retrieval
+        budget on the easiest clause. Results remain bounded by the same contract.
+        """
+        cleaned = [item.strip() for item in queries if item and item.strip()]
+        if not cleaned:
+            return []
+        if len(cleaned) == 1:
+            return self.search(cleaned[0], task_id, preferred_node_types, limit)
+
+        fused: dict[str, tuple[SearchResult, float]] = {}
+        per_query_limit = min(limit or self.top_k, self.top_k)
+        for query in cleaned[:4]:
+            for item in self.search(
+                query,
+                task_id,
+                preferred_node_types=preferred_node_types,
+                limit=per_query_limit,
+            ):
+                previous = fused.get(item.chunk_id)
+                fused_score = (previous[1] if previous else 0.0) + 1.0 / (60 + item.rank)
+                representative = item if previous is None or item.score > previous[0].score else previous[0]
+                fused[item.chunk_id] = (representative, fused_score)
+
+        result_limit = min(limit or self.top_k, self.top_k, len(fused))
+        ordered = sorted(fused.values(), key=lambda pair: pair[1], reverse=True)[:result_limit]
+        return [replace(item, rank=rank) for rank, (item, _) in enumerate(ordered, start=1)]

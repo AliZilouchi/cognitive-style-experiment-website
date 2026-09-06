@@ -35,7 +35,7 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v10-evidence-projection")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v11-hybrid-conversation")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
@@ -78,7 +78,7 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
-        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v3-evidence-projection")
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v4-claim-evidence")
         self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
         self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
         self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
