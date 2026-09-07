@@ -129,9 +129,35 @@ class KnowledgeScopeTests(unittest.TestCase):
         )
 
     def test_closed_world_matrix_marks_missing_services_as_unavailable(self):
-        context = self.scope.closed_world_context("هتل صدف ناهار دارد؟")
+        decision = self.scope.classify("هتل صدف ناهار دارد؟", self.entities)
+        context = self.scope.closed_world_context("هتل صدف ناهار دارد؟", decision)
         self.assertIn("ناهار: ارائه نمی‌شود", context)
         self.assertIn("صبحانه: ارائه می‌شود", context)
+        self.assertNotIn("حمام اختصاصی", context)
+
+    def test_food_matrix_preserves_paid_optional_breakfast(self):
+        decision = self.scope.classify("در کدام اقامتگاه غذا سرو می شود؟", self.entities)
+        context = self.scope.closed_world_context(
+            "در کدام اقامتگاه غذا سرو می شود؟", decision
+        )
+        self.assertIn("کلبه های نارون", context)
+        self.assertIn("صبحانه: با سفارش و هزینه جداگانه", context)
+
+    def test_known_gap_blocks_tropical_climate_inference(self):
+        constraint = self.scope.knowledge_constraints(
+            "آیا اقلیم جزیره گرمسیری است؟"
+        )
+        self.assertIn("طبقه‌بندی رسمی اقلیم", constraint)
+        self.assertIn("کافی نیست", constraint)
+
+    def test_culture_overview_is_deterministic_and_relevant(self):
+        decision = self.scope.classify(
+            "برای شناخت تعامل محترمانه چه موضوع هایی مهم اند؟", self.entities
+        )
+        overview = self.scope.category_overview_response(decision)
+        self.assertIn("حریم خصوصی", overview)
+        self.assertIn("احترام به آب", overview)
+        self.assertNotIn("موزه فانوس", overview)
 
     def test_non_matrix_attribute_is_not_assumed_unavailable(self):
         context = self.scope.closed_world_context("هتل صدف استخر دارد؟")

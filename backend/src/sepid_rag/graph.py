@@ -58,13 +58,23 @@ _FOLLOW_UP_MARKERS = {
     "همان",
     "همین",
     "نسبت",
-    "دقیقاً",
-    "دقیقا",
     "کدامشان",
-    "چطور",
-    "چگونه",
-    "چرا",
+    "همانها",
+    "این موارد",
+    "موارد بالا",
+    "حالا",
 }
+
+_ATTACHED_REFERENCE = re.compile(
+    r"(?:مرتب|مقایسه|توضیح|بررسی|قیمت|هزینه|ویژگی|امکانات|مجوز|قانون|جواب|پاسخ)(?:‌?شان|ش)(?:\s|$|[؟?!،,.])"
+)
+
+
+def has_reference_marker(normalized: str) -> bool:
+    return any(
+        re.search(rf"(?<!\w){re.escape(marker)}(?!\w)", normalized)
+        for marker in _FOLLOW_UP_MARKERS
+    ) or bool(_ATTACHED_REFERENCE.search(normalized))
 
 _INCOMPLETE_ENDINGS = {
     "از",
@@ -133,13 +143,11 @@ def build_retrieval_query(
     """Resolve short/referential follow-ups without rewriting clear questions."""
 
     normalized = normalize_persian(query)
-    tokens = set(normalized.split())
-    has_marker = bool(tokens & _FOLLOW_UP_MARKERS)
+    has_marker = has_reference_marker(normalized)
     has_named_entity = any(
         normalize_persian(entity) in normalized for entity in known_entities
     )
-    is_short_subjectless = len(tokens) <= 6 and not has_named_entity
-    if not history or not (has_marker or is_short_subjectless):
+    if not history or not has_marker or has_named_entity:
         return query
 
     recent = [
@@ -161,13 +169,12 @@ def needs_history_resolution(
     if not history:
         return False
     normalized = normalize_persian(query)
-    tokens = set(normalized.split())
     has_named_entity = any(
         normalize_persian(entity) in normalized for entity in (known_entities or set())
     )
-    return bool(tokens & _FOLLOW_UP_MARKERS) or (
-        len(tokens) <= 4 and not has_named_entity
-    )
+    if has_named_entity:
+        return False
+    return has_reference_marker(normalized)
 
 
 def clean_model_content(content: object) -> str:
@@ -211,6 +218,16 @@ def extract_evidence_decision(content: object) -> dict | None:
         return None
     if not isinstance(result.get("selected_chunk_ids", []), list):
         return None
+    coverage_items = result.get("coverage_items")
+    if not isinstance(coverage_items, list) or not coverage_items:
+        return None
+    for item in coverage_items:
+        if (
+            not isinstance(item, dict)
+            or item.get("status") not in {"direct", "partial", "missing"}
+            or not isinstance(item.get("selected_chunk_ids", []), list)
+        ):
+            return None
     return result
 
 
@@ -234,6 +251,24 @@ def extract_query_resolution(content: object) -> dict | None:
     if not isinstance(queries, list) or not all(isinstance(item, str) for item in queries):
         return None
     return result
+
+
+def answer_uses_only_evidence_entities(
+    answer: str,
+    evidence: str,
+    resolved_query: str,
+    known_entities: set[str],
+) -> bool:
+    """Reject a rewrite that imports known corpus entities absent from evidence."""
+    evidence_text = normalize_persian(evidence)
+    query_text = normalize_persian(resolved_query)
+    answer_text = normalize_persian(answer)
+    return not any(
+        normalize_persian(entity) in answer_text
+        and normalize_persian(entity) not in evidence_text
+        and normalize_persian(entity) not in query_text
+        for entity in known_entities
+    )
 
 
 def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
@@ -342,9 +377,12 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "referenced_topics": [],
             }
 
-        recent_history = state.get("history", [])[-10:]
+        recent_history = [
+            item for item in state.get("history", [])[-12:]
+            if item.get("role") == "user"
+        ][-6:]
         history_text = "\n".join(
-            f"{item.get('role', 'unknown')}: {item.get('content', '').strip()}"
+            f"user: {item.get('content', '').strip()}"
             for item in recent_history
             if item.get("content", "").strip()
         )
@@ -477,8 +515,17 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             selected = [item for item in results if item.chunk_id in selected_ids]
             selected.sort(key=lambda item: selected_ids.index(item.chunk_id))
             classification = str(judge_result["classification"])
-            request_level = str(judge_result.get("request_level", baseline.request_level))
+            request_level = baseline.request_level
+            if request_level in {"unsupported", "broad_clarification"}:
+                request_level = str(judge_result.get("request_level", "single_fact"))
             coverage = str(judge_result.get("coverage", ""))
+            coverage_items = judge_result.get("coverage_items", [])
+            coverage_detail = "\n".join(
+                f"- {item.get('question_part', 'بخش پرسش')}: {item.get('status')}"
+                for item in coverage_items
+            )
+            if coverage_detail:
+                coverage = "\n".join(item for item in (coverage, coverage_detail) if item)
             answer_instruction = str(judge_result.get("answer_instruction", ""))
             judge_status = "judged"
 
@@ -507,20 +554,30 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             else ""
         )
         direct_answer = knowledge_scope.direct_response(decision)
+        if not direct_answer and decision.request_level == "category_overview":
+            direct_answer = knowledge_scope.category_overview_response(decision)
+        projected = knowledge_scope.project_evidence(selected, decision)
+        closed_world = knowledge_scope.closed_world_context(
+            state.get("retrieval_query", state["query"]), decision
+        )
+        knowledge_constraints = knowledge_scope.knowledge_constraints(
+            state.get("retrieval_query", state["query"])
+        )
+        authorized_evidence = "\n\n".join(
+            item for item in (projected, closed_world, knowledge_constraints) if item
+        )
         return {
             "retrieved": selected,
             "knowledge_classification": decision.classification,
             "knowledge_guidance": decision.guidance,
-            "closed_world_context": knowledge_scope.closed_world_context(
-                state.get("retrieval_query", state["query"])
-            ),
+            "closed_world_context": closed_world,
             "task_relevance": relevance,
             "task_reminder": reminder,
             "request_level": decision.request_level,
             "response_contract": decision.response_contract,
             "request_decision": decision,
             "direct_answer": direct_answer or "",
-            "projected_context": knowledge_scope.project_evidence(selected, decision),
+            "projected_context": authorized_evidence,
             "evidence_judge_status": judge_status,
             "evidence_coverage": coverage,
         }
@@ -573,8 +630,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                     f"تصمیم نمایه دانش:\n{state.get('knowledge_guidance', '')}\n\n"
                     f"قرارداد الزام‌آور پاسخ:\n{state.get('response_contract', '')}\n\n"
                     f"ارتباط با فعالیت فعلی: {state.get('task_relevance', 'unknown')}\n"
-                    f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
-                    f"شواهد مجاز و متناسب با سطح درخواست:\n{state.get('projected_context', format_context(results)) or 'داده پایه مرتبطی بازیابی نشد.'}\n\n"
+                    f"تنها شواهد مجاز برای پاسخ:\n{state.get('projected_context', format_context(results)) or 'داده پایه مرتبطی بازیابی نشد.'}\n\n"
                     f"صورت مستقل و حل‌شدهٔ پرسش برای فهم ارجاع‌ها:\n{state.get('retrieval_query', state['query'])}\n\n"
                     f"پرسش فعلی کاربر:\n{state['query']}"
                 )
@@ -611,7 +667,6 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                     f"زمینه و مرز فعالیت:\n{format_task_context(state['task_id'])}\n\n"
                     f"تصمیم نمایه دانش:\n{state.get('knowledge_guidance', '')}\n\n"
                     f"قرارداد الزام‌آور پاسخ:\n{state.get('response_contract', '')}\n\n"
-                    f"اطلاعات صریحِ دامنه بسته:\n{state.get('closed_world_context') or 'موردی فعال نیست.'}\n\n"
                     f"پرسش فعلی:\n{state['query']}\n\n"
                     f"منابع مجاز:\n{evidence}\n\n"
                     f"پیش‌نویس برای ممیزی:\n{state['draft_answer']}"
@@ -626,10 +681,24 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             # into an endless loading/error loop. The unverified status is exposed
             # to the API for monitoring.
             verified = None
-        if verified is None:
+        def grounded_entities(answer: str) -> bool:
+            known_entities = {
+                entity for document in retriever.documents for entity in document.entities
+            }
+            return answer_uses_only_evidence_entities(
+                answer,
+                evidence,
+                state.get("retrieval_query", state["query"]),
+                known_entities,
+            )
+
+        if verified is None or not grounded_entities(verified):
             final_answer = state["draft_answer"]
             decision = state.get("request_decision")
-            if decision and not knowledge_scope.answer_passes_contract(final_answer, decision):
+            if decision and (
+                not knowledge_scope.answer_passes_contract(final_answer, decision)
+                or not grounded_entities(final_answer)
+            ):
                 final_answer = knowledge_scope.contract_fallback(decision)
             if state.get("task_reminder") and state["task_reminder"] not in final_answer:
                 final_answer = f"{final_answer}\n\n{state['task_reminder']}"

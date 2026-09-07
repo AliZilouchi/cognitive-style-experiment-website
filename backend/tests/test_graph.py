@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from sepid_rag.graph import (
+    answer_uses_only_evidence_entities,
     build_graph,
     build_retrieval_queries,
     build_retrieval_query,
@@ -58,6 +59,8 @@ class _FakeChat:
                 '<evidence_decision>{"classification":"supported",'
                 '"request_level":"single_fact",'
                 '"selected_chunk_ids":["SHARED-FACT-ISLAND-ACCESS"],'
+                '"coverage_items":[{"question_part":"راه ورود",'
+                '"status":"direct","selected_chunk_ids":["SHARED-FACT-ISLAND-ACCESS"]}],'
                 '"coverage":"پوشش مستقیم",'
                 '"answer_instruction":"فقط مسیر ورود را بگو"}</evidence_decision>'
             ))
@@ -132,6 +135,8 @@ class RetrievalQueryTests(unittest.TestCase):
         history = [{"role": "user", "content": "آب‌وهوا چطور است؟"}]
         self.assertTrue(needs_history_resolution("با توجه به این موارد مقایسه کن", history))
         self.assertFalse(needs_history_resolution("قیمت هتل صدف چقدر است؟", history))
+        self.assertTrue(needs_history_resolution("از ارزان‌ترین تا گران‌ترین مرتبشان کن.", history))
+        self.assertFalse(needs_history_resolution("مردم جزیره چگونه برخورد می‌کنند؟", history))
 
     def test_query_resolution_envelope_is_strictly_extracted(self):
         parsed = extract_query_resolution(
@@ -142,6 +147,21 @@ class RetrievalQueryTests(unittest.TestCase):
         )
         self.assertEqual(len(parsed["retrieval_queries"]), 2)
         self.assertIsNone(extract_query_resolution("not-json"))
+
+    def test_verifier_cannot_import_an_unretrieved_known_entity(self):
+        known = {"موزه فانوس", "باغ سنگ و ابر"}
+        self.assertFalse(answer_uses_only_evidence_entities(
+            "موزه فانوس و باغ سنگ و ابر مهم‌اند.",
+            "سلام و رعایت حریم خصوصی مهم است.",
+            "موضوع‌های تعامل محترمانه چیست؟",
+            known,
+        ))
+        self.assertTrue(answer_uses_only_evidence_entities(
+            "موزه فانوس پنج دقیقه فاصله دارد.",
+            "موزه فانوس پنج دقیقه فاصله دارد.",
+            "موزه کجاست؟",
+            known,
+        ))
 
     def test_incomplete_short_question_uses_context(self):
         result = build_retrieval_query(

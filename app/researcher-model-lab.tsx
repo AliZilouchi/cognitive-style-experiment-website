@@ -66,7 +66,7 @@ function formatEvaluationResults(
       ? response.sources.map((source) => `- ${source.chunk_id || source.source_id} · ${source.topic || "—"} · ${source.score.toFixed(3)}`).join("\n")
       : "- بدون شاهد";
     const topics = response.retrieval.referenced_topics?.join("، ") || "—";
-    return `## ${index + 1}\n\n**پیام**\n\n${turn.question}\n\n**پاسخ**\n\n${response.answer}\n\n**فراداده**\n\n- زمان: ${turn.elapsedMs.toFixed(0)} ms\n- نسخه: ${response.prompt_version}\n- resolver: ${response.retrieval.query_resolver_status || "unknown"}\n- موضوع‌های ارجاعی: ${topics}\n- پوشش: ${response.knowledge_scope?.coverage || "—"}\n- طبقه‌بندی: ${response.knowledge_scope?.classification || "unknown"}\n- داور: ${response.knowledge_scope?.judge_status || "unknown"}\n- راستی‌آزما: ${response.verification?.status || "unknown"}\n\n**شواهد**\n\n${evidence}`;
+    return `## ${index + 1}\n\n**پیام**\n\n${turn.question}\n\n**پاسخ**\n\n${response.answer}\n\n**فراداده**\n\n- زمان: ${turn.elapsedMs.toFixed(0)} ms\n- نسخه: ${response.prompt_version}\n- resolver: ${response.retrieval.query_resolver_status || "unknown"}\n- سطح درخواست: ${response.knowledge_scope?.request_level || "unknown"}\n- موضوع‌های ارجاعی: ${topics}\n- پوشش: ${response.knowledge_scope?.coverage || "—"}\n- طبقه‌بندی: ${response.knowledge_scope?.classification || "unknown"}\n- داور: ${response.knowledge_scope?.judge_status || "unknown"}\n- راستی‌آزما: ${response.verification?.status || "unknown"}\n\n**شواهد**\n\n${evidence}`;
   });
   return `# ${scenario.title}\n\nحالت: ${scenario.taskId}\nتعداد پیام‌ها: ${results.length}\n\n${sections.join("\n\n---\n\n")}`;
 }
@@ -234,7 +234,7 @@ export default function ResearcherModelLab({ language }: { language: "fa" | "en"
       <div className="model-lab-question"><span>{index + 1}</span><p>{turn.question}</p></div>
       {turn.response ? <div className="model-lab-answer">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{turn.response.answer}</ReactMarkdown>
-        <footer><span>{turn.elapsedMs.toFixed(0)} ms</span><span>{turn.response.prompt_version}</span><span>{turn.response.retrieval.query_resolver_status || "unknown"}</span><span>{turn.response.knowledge_scope?.classification || "unknown"}</span><span>{turn.response.knowledge_scope?.judge_status || "unknown"}</span><span>{turn.response.verification?.status || "unknown"}</span></footer>
+        <footer><span>{turn.elapsedMs.toFixed(0)} ms</span><span>{turn.response.prompt_version}</span><span>{turn.response.retrieval.query_resolver_status || "unknown"}</span><span>{turn.response.knowledge_scope?.request_level || "unknown"}</span><span>{turn.response.knowledge_scope?.classification || "unknown"}</span><span>{turn.response.knowledge_scope?.judge_status || "unknown"}</span><span>{turn.response.verification?.status || "unknown"}</span></footer>
         {!!turn.response.retrieval.referenced_topics?.length && <p className="model-lab-coverage">{fa ? "موضوع‌های ارجاع‌شده: " : "Referenced topics: "}{turn.response.retrieval.referenced_topics.join("، ")}</p>}
         {turn.response.knowledge_scope?.coverage && <p className="model-lab-coverage">{turn.response.knowledge_scope.coverage}</p>}
         <details><summary>{fa ? `شواهد بازیابی‌شده (${turn.response.sources.length})` : `Retrieved evidence (${turn.response.sources.length})`}</summary><ul>{turn.response.sources.map((source) => <li key={`${source.source_id}-${source.chunk_id}`}>{source.chunk_id || source.source_id} · {source.topic || "—"} · {source.score.toFixed(3)}</li>)}</ul></details>

@@ -40,7 +40,7 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v13-history-aware-retrieval")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v14-closed-evidence-chain")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
@@ -48,8 +48,8 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("قرارداد پاسخ", SYSTEM_PROMPT)
 
     def test_query_resolver_uses_history_as_intent_not_evidence(self):
-        self.assertEqual(QUERY_RESOLVER_PROMPT_VERSION, "sepid-fa-query-resolver-v1")
-        self.assertIn("منبع واقعیت نیستند", QUERY_RESOLVER_PROMPT)
+        self.assertEqual(QUERY_RESOLVER_PROMPT_VERSION, "sepid-fa-query-resolver-v2-user-intent")
+        self.assertIn("فقط پیام‌های قبلی کاربر", QUERY_RESOLVER_PROMPT)
         self.assertIn("retrieval_queries", QUERY_RESOLVER_PROMPT)
 
     def test_each_research_task_has_problem_objective_and_neutral_boundaries(self):
@@ -88,7 +88,7 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
-        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v5-post-judge")
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v6-closed-evidence")
         self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
         self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
         self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
@@ -103,11 +103,13 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIsNone(extract_verified_answer("پاسخ بدون برچسب"))
 
     def test_post_retrieval_judge_envelope_is_strictly_extracted(self):
-        self.assertEqual(EVIDENCE_JUDGE_PROMPT_VERSION, "sepid-fa-evidence-judge-v1")
+        self.assertEqual(EVIDENCE_JUDGE_PROMPT_VERSION, "sepid-fa-evidence-judge-v2-coverage")
         self.assertIn("پس از بازیابی", EVIDENCE_JUDGE_PROMPT)
         parsed = extract_evidence_decision(
             '<evidence_decision>{"classification":"supported",'
-            '"request_level":"single_fact","selected_chunk_ids":["A"]}</evidence_decision>'
+            '"request_level":"single_fact","selected_chunk_ids":["A"],'
+            '"coverage_items":[{"question_part":"پرسش","status":"direct",'
+            '"selected_chunk_ids":["A"]}]}</evidence_decision>'
         )
         self.assertEqual(parsed["selected_chunk_ids"], ["A"])
         self.assertIsNone(extract_evidence_decision("not-json"))

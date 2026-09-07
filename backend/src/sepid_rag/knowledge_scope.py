@@ -50,10 +50,23 @@ class KnowledgeScope:
         } | {alias for aliases in self._field_aliases.values() for alias in aliases}
         self._contracts = planner.get("contracts", {})
         self._category_overviews = planner.get("category_overviews", {})
+        self._known_gaps = [
+            {
+                "id": str(item.get("id", "")),
+                "aliases": self._normalized_values(item.get("aliases", [])),
+                "instruction": str(item.get("instruction", "")),
+            }
+            for item in data.get("known_gaps", [])
+        ]
 
     @staticmethod
     def _normalized_values(values: list[str]) -> tuple[str, ...]:
         return tuple(normalize_persian(str(value)) for value in values)
+
+    @staticmethod
+    def _has_alias(normalized: str, alias: str) -> bool:
+        """Match one-word aliases as tokens so «شنا» never matches «شناخت»."""
+        return bool(re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", normalized))
 
     @classmethod
     def load(cls, corpus_root: Path) -> "KnowledgeScope":
@@ -78,7 +91,7 @@ class KnowledgeScope:
         fields = tuple(
             field_id
             for field_id, aliases in self._field_aliases.items()
-            if any(alias in normalized for alias in aliases)
+            if any(self._has_alias(normalized, alias) for alias in aliases)
         )
         outside_hits = tuple(item for item in self._outside if item in normalized)
         calculation_limited = self._is_calculation_request(normalized)
@@ -117,7 +130,9 @@ class KnowledgeScope:
 
     def _matched_topics(self, normalized: str) -> tuple[str, ...]:
         return tuple(
-            topic_id for topic_id, aliases in self._topics if any(alias in normalized for alias in aliases)
+            topic_id
+            for topic_id, aliases in self._topics
+            if any(self._has_alias(normalized, alias) for alias in aliases)
         )
 
     def _matched_entities(self, normalized: str, entities: set[str]) -> tuple[str, ...]:
@@ -210,7 +225,12 @@ class KnowledgeScope:
             "broad_clarification",
             "unsupported",
         }
-        level = request_level if request_level in allowed_levels else decision.request_level
+        # The deterministic planner owns answer breadth. The LLM judge may only
+        # supply a level when the planner could not recognize the request.
+        if decision.request_level not in {"unsupported", "broad_clarification"}:
+            level = decision.request_level
+        else:
+            level = request_level if request_level in allowed_levels else decision.request_level
         if classification == "unsupported":
             level = "unsupported"
         contract = dict(self._contracts.get(level, {}))
@@ -258,6 +278,26 @@ class KnowledgeScope:
             f"--- بخش {item.chunk_id} ---\n{item.text}" for item in filtered
         )
 
+    def category_overview_response(self, decision: ScopeDecision) -> str:
+        """Return the configured minimal overview without a generative detour."""
+        if decision.request_level != "category_overview":
+            return ""
+        return self.project_evidence([], decision)
+
+    def knowledge_constraints(self, query_with_context: str) -> str:
+        """Return explicit knowledge-map gaps that match the current request."""
+        normalized = normalize_persian(query_with_context)
+        rows = [
+            item["instruction"]
+            for item in self._known_gaps
+            if item["instruction"] and any(alias in normalized for alias in item["aliases"])
+        ]
+        if not rows:
+            return ""
+        return "محدودیت‌های صریح نمایه دانش:\n" + "\n".join(
+            f"- {row}" for row in rows
+        )
+
     def answer_passes_contract(self, answer: str, decision: ScopeDecision) -> bool:
         if decision.request_level == "category_overview":
             normalized = normalize_persian(answer)
@@ -287,7 +327,11 @@ class KnowledgeScope:
             return str(self.data["request_planner"]["calculation_fallback_response"])
         return self.not_documented_response
 
-    def closed_world_context(self, query_with_context: str) -> str:
+    def closed_world_context(
+        self,
+        query_with_context: str,
+        decision: ScopeDecision | None = None,
+    ) -> str:
         normalized = normalize_persian(query_with_context)
         group = self.data.get("closed_world", {}).get("accommodation_services", {})
         entities = group.get("entities", {})
@@ -295,14 +339,30 @@ class KnowledgeScope:
         mentioned = [name for name in entities if normalize_persian(name) in normalized]
         if not mentioned and not any(term in normalized for term in accommodation_terms):
             return ""
+        requested_fields = set(decision.requested_fields) if decision else set()
+        field_keys = {
+            "food": {"breakfast", "lunch", "dinner"},
+            "facilities": {
+                "private_bathroom", "full_kitchen", "small_kitchen",
+                "food_reheating", "daily_cleaning",
+            },
+        }
+        allowed_keys = set().union(
+            *(field_keys.get(field, set()) for field in requested_fields)
+        ) if requested_fields else None
         selected = entities if not mentioned else {name: entities[name] for name in mentioned}
         labels = group.get("service_labels", {})
         rows = []
         for name, values in selected.items():
             rendered = []
             for key, value in values.items():
+                if allowed_keys is not None and key not in allowed_keys:
+                    continue
                 label = labels.get(key, key)
                 status = "ارائه می‌شود" if value is True else "ارائه نمی‌شود" if value is False else "با سفارش و هزینه جداگانه"
                 rendered.append(f"{label}: {status}")
-            rows.append(f"- {name}: " + "؛ ".join(rendered))
+            if rendered:
+                rows.append(f"- {name}: " + "؛ ".join(rendered))
+        if not rows:
+            return ""
         return "\n".join([str(group.get("rule", "")), *rows])

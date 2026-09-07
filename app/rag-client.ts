@@ -52,6 +52,7 @@ export type RagChatResponse = {
     judge_status?: "judged" | "fallback" | "not_needed" | "unknown";
     judge_version?: string;
     coverage?: string;
+    request_level?: "single_fact" | "single_entity" | "category_overview" | "comparison" | "multi_part" | "calculation_limited" | "broad_clarification" | "unsupported" | "unknown";
   };
   verification?: {
     enabled: boolean;

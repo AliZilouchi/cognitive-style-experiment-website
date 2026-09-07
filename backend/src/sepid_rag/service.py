@@ -95,6 +95,7 @@ class RagService:
                 "judge_status": result.get("evidence_judge_status", "unknown"),
                 "judge_version": EVIDENCE_JUDGE_PROMPT_VERSION,
                 "coverage": result.get("evidence_coverage", ""),
+                "request_level": result.get("request_level", "unknown"),
             },
             "verification": {
                 "enabled": self.settings.enable_response_verifier,
