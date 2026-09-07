@@ -263,7 +263,11 @@ def extract_query_resolution(content: object) -> dict | None:
         result = json.loads(payload)
     except (TypeError, ValueError):
         return None
-    if not isinstance(result, dict) or result.get("status") not in {"resolved", "unresolved"}:
+    if not isinstance(result, dict) or result.get("status") not in {
+        "independent",
+        "resolved",
+        "unresolved",
+    }:
         return None
     if not isinstance(result.get("standalone_query"), str):
         return None
@@ -281,6 +285,10 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         raise RuntimeError("Install project dependencies to use the LangGraph workflow") from exc
 
     llm = None
+    resolver_llm = None
+    resolver_model = getattr(settings, "resolver_model", "") or settings.llm_model
+    resolver_max_tokens = getattr(settings, "resolver_max_tokens", 250)
+    resolver_timeout = getattr(settings, "resolver_timeout_seconds", 8)
     if settings.llm_provider == "together":
         try:
             from langchain_together import ChatTogether
@@ -293,6 +301,13 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             max_retries=0,
             timeout=60,
         )
+        resolver_llm = ChatTogether(
+            model=resolver_model,
+            temperature=0,
+            max_tokens=resolver_max_tokens,
+            max_retries=0,
+            timeout=resolver_timeout,
+        )
     elif settings.llm_provider == "groq":
         try:
             from langchain_groq import ChatGroq
@@ -304,6 +319,15 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             max_tokens=settings.llm_max_tokens,
             max_retries=0,
             timeout=60,
+            reasoning_format="hidden",
+            reasoning_effort="none",
+        )
+        resolver_llm = ChatGroq(
+            model=resolver_model,
+            temperature=0,
+            max_tokens=resolver_max_tokens,
+            max_retries=0,
+            timeout=resolver_timeout,
             reasoning_format="hidden",
             reasoning_effort="none",
         )
@@ -327,6 +351,16 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             max_retries=0,
             timeout=60,
         )
+        resolver_llm = ChatOpenAI(
+            model=resolver_model,
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+            default_headers=headers or None,
+            temperature=0,
+            max_tokens=resolver_max_tokens,
+            max_retries=0,
+            timeout=resolver_timeout,
+        )
     elif settings.llm_provider == "avalai":
         try:
             from langchain_openai import ChatOpenAI
@@ -340,6 +374,15 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             max_tokens=settings.llm_max_tokens,
             max_retries=0,
             timeout=60,
+        )
+        resolver_llm = ChatOpenAI(
+            model=resolver_model,
+            api_key=settings.avalai_api_key,
+            base_url=settings.avalai_base_url,
+            temperature=0,
+            max_tokens=resolver_max_tokens,
+            max_retries=0,
+            timeout=resolver_timeout,
         )
 
     def resolve_query(state: RagState) -> dict:
@@ -361,24 +404,6 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "clarification": clarification,
                 "query_resolver_status": "not_needed",
             }
-        entities = {
-            entity
-            for document in retriever.documents
-            for entity in document.entities
-        }
-        fallback_query = build_retrieval_query(
-            state["query"], state.get("history", []), entities
-        )
-        if not needs_history_resolution(
-            state["query"], state.get("history", []), entities
-        ):
-            return {
-                "retrieval_query": state["query"],
-                "retrieval_queries": build_retrieval_queries(state["query"], state["query"]),
-                "query_resolver_status": "not_needed",
-                "referenced_topics": [],
-            }
-
         recent_history = [
             item for item in state.get("history", [])[-12:]
             if item.get("role") == "user"
@@ -389,9 +414,9 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             if item.get("content", "").strip()
         )
         resolution = None
-        if settings.llm_provider != "echo":
+        if resolver_llm is not None:
             try:
-                resolution = extract_query_resolution(llm.invoke([
+                resolution = extract_query_resolution(resolver_llm.invoke([
                     SystemMessage(content=QUERY_RESOLVER_PROMPT),
                     HumanMessage(content=(
                         f"تاریخچه اخیر:\n{history_text}\n\n"
@@ -401,10 +426,19 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             except Exception:
                 resolution = None
 
+        if resolution is not None and resolution["status"] == "independent":
+            return {
+                "retrieval_query": state["query"],
+                "retrieval_queries": [state["query"]],
+                "query_resolver_status": "independent",
+                "referenced_topics": [],
+            }
+
         history_queries = recent_user_queries_for_collective_reference(
             state["query"], recent_history
         )
         if resolution is None or resolution["status"] != "resolved":
+            fallback_query = state["query"]
             fallback_queries = build_retrieval_queries(state["query"], fallback_query)
             fallback_queries = list(dict.fromkeys([*fallback_queries, *history_queries]))[:6]
             return {
@@ -414,7 +448,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "referenced_topics": [],
             }
 
-        standalone = resolution["standalone_query"].strip() or fallback_query
+        standalone = resolution["standalone_query"].strip() or state["query"]
         queries = [
             item.strip() for item in resolution["retrieval_queries"]
             if item.strip()

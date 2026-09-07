@@ -1,25 +1,27 @@
 """Stable study prompt. Freeze and version this before data collection."""
 
-SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.2-no-entity-guard"
-QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v2-user-intent"
+SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.4-always-resolve"
+QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v3-always-on"
 EVIDENCE_JUDGE_PROMPT_VERSION = "sepid-fa-evidence-judge-v2-coverage"
 VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v6-closed-evidence"
 
 QUERY_RESOLVER_PROMPT = """شما فقط پرسش فعلی را برای بازیابی اطلاعات از پایگاه دانش جزیره سپید مستقل‌سازی می‌کنید؛ پاسخ پرسش را تولید نمی‌کنید.
 
 قواعد:
-1. تاریخچه فقط برای تشخیص مرجع عبارت‌هایی مانند «این موارد»، «آن»، «بقیه»، «مرتبشان» و «حالا مقایسه کن» است.
+1. ابتدا تعیین کنید پرسش فعلی مستقل است یا برای فهم موضوع، گزینه‌ها یا مرجع آن به تاریخچه نیاز دارد.
 2. فقط پیام‌های قبلی کاربر در اختیار شماست. موضوع و هدف کاربر را از آن‌ها استخراج کنید و هیچ پاسخ یا واقعیتی را بازسازی نکنید.
 3. منظور کاربر را گسترش ندهید و موضوع تازه‌ای اضافه نکنید. فقط محورهایی را وارد کنید که در پرسش فعلی صریح‌اند یا پرسش فعلی آشکارا به آن‌ها ارجاع می‌دهد.
 4. standalone_query باید معنای پرسش فعلی را بدون نیاز به دیدن تاریخچه روشن کند.
 5. retrieval_queries باید دو تا شش جست‌وجوی کوتاه و مستقل برای محورهای لازم باشد. اگر فقط یک محور وجود دارد، یک جست‌وجو کافی است.
 6. ضمیرهای پیوسته فارسی مانند «مرتبشان»، «مقایسه‌شان»، «قیمتشان» و «مجوزش» را ارجاع مکالمه‌ای در نظر بگیرید.
-7. اگر مرجع واقعاً روشن نیست، status را unresolved بگذارید و متن پرسش فعلی را بدون حدس حفظ کنید.
-8. هیچ واقعیت، پاسخ، نتیجه‌گیری یا ادعای تازه‌ای ننویسید.
+7. اگر پرسش بدون تاریخچه کاملاً روشن است، status را independent بگذارید؛ standalone_query باید عین پرسش فعلی، retrieval_queries فقط شامل عین پرسش فعلی و referenced_topics خالی باشد.
+8. اگر پرسش به تاریخچه وابسته است و مرجع روشن است، status را resolved بگذارید و فقط همان مرجع را مستقل‌سازی کنید.
+9. اگر پرسش به تاریخچه وابسته است اما مرجع واقعاً روشن نیست، status را unresolved بگذارید و متن پرسش فعلی را بدون حدس حفظ کنید.
+10. هیچ واقعیت، پاسخ، نتیجه‌گیری یا ادعای تازه‌ای ننویسید. مستقل‌سازی فقط بازنویسی نیت کاربر برای بازیابی است.
 
 فقط JSON معتبر را میان برچسب‌های زیر برگردانید:
 <query_resolution>
-{"status":"resolved|unresolved","standalone_query":"پرسش مستقل","retrieval_queries":["جست‌وجوی ۱"],"referenced_topics":["موضوع"]}
+{"status":"independent|resolved|unresolved","standalone_query":"پرسش مستقل","retrieval_queries":["جست‌وجوی ۱"],"referenced_topics":["موضوع"]}
 </query_resolution>"""
 
 EVIDENCE_JUDGE_PROMPT = """شما داور شواهد سامانه خیالی جزیره سپید هستید. تصمیم شما فقط پس از بازیابی انجام می‌شود. پرسش و نامزدهای بازیابی‌شده را بررسی کنید و فقط قطعه‌هایی را نگه دارید که مستقیماً برای پاسخ فعلی مفیدند.

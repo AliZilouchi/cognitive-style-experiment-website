@@ -48,6 +48,12 @@ class _StateGraph:
 
 class _FakeChat:
     calls = []
+    resolver_content = (
+        '<query_resolution>{"status":"independent",'
+        '"standalone_query":"چطور به جزیره برسیم؟",'
+        '"retrieval_queries":["چطور به جزیره برسیم؟"],'
+        '"referenced_topics":[]}</query_resolution>'
+    )
 
     def __init__(self, **kwargs):
         pass
@@ -55,6 +61,8 @@ class _FakeChat:
     def invoke(self, messages):
         self.calls.append(messages)
         if len(self.calls) == 1:
+            return SimpleNamespace(content=self.resolver_content)
+        if len(self.calls) == 2:
             return SimpleNamespace(content=(
                 '<evidence_decision>{"classification":"supported",'
                 '"request_level":"single_fact",'
@@ -64,7 +72,7 @@ class _FakeChat:
                 '"coverage":"پوشش مستقیم",'
                 '"answer_instruction":"فقط مسیر ورود را بگو"}</evidence_decision>'
             ))
-        if len(self.calls) == 2:
+        if len(self.calls) == 3:
             return SimpleNamespace(content="جزیره فرودگاه مسافری دارد.")
         return SimpleNamespace(
             content=(
@@ -131,13 +139,6 @@ class RetrievalQueryTests(unittest.TestCase):
         self.assertIn("اردوگاه چشمه", result)
         self.assertIn("نسبت به بقیه چطور است؟", result)
 
-    def test_history_resolver_runs_only_for_dependent_turns(self):
-        history = [{"role": "user", "content": "آب‌وهوا چطور است؟"}]
-        self.assertTrue(needs_history_resolution("با توجه به این موارد مقایسه کن", history))
-        self.assertFalse(needs_history_resolution("قیمت هتل صدف چقدر است؟", history))
-        self.assertTrue(needs_history_resolution("از ارزان‌ترین تا گران‌ترین مرتبشان کن.", history))
-        self.assertFalse(needs_history_resolution("مردم جزیره چگونه برخورد می‌کنند؟", history))
-
     def test_query_resolution_envelope_is_strictly_extracted(self):
         parsed = extract_query_resolution(
             '<query_resolution>{"status":"resolved",'
@@ -146,6 +147,13 @@ class RetrievalQueryTests(unittest.TestCase):
             '"referenced_topics":["آب‌وهوا","شلوغی"]}</query_resolution>'
         )
         self.assertEqual(len(parsed["retrieval_queries"]), 2)
+        independent = extract_query_resolution(
+            '<query_resolution>{"status":"independent",'
+            '"standalone_query":"قیمت هتل صدف چقدر است؟",'
+            '"retrieval_queries":["قیمت هتل صدف چقدر است؟"],'
+            '"referenced_topics":[]}</query_resolution>'
+        )
+        self.assertEqual(independent["status"], "independent")
         self.assertIsNone(extract_query_resolution("not-json"))
 
     def test_collective_follow_up_reuses_recent_user_questions(self):
@@ -200,6 +208,12 @@ class RetrievalQueryTests(unittest.TestCase):
             enable_response_verifier=True,
         )
         _FakeChat.calls = []
+        _FakeChat.resolver_content = (
+            '<query_resolution>{"status":"independent",'
+            '"standalone_query":"چطور به جزیره برسیم؟",'
+            '"retrieval_queries":["چطور به جزیره برسیم؟"],'
+            '"referenced_topics":[]}</query_resolution>'
+        )
         with patch.dict(sys.modules, modules):
             knowledge_scope = KnowledgeScope(
                 {
@@ -217,9 +231,74 @@ class RetrievalQueryTests(unittest.TestCase):
             result = graph.invoke(
                 {"query": "چطور به جزیره برسیم؟", "task_id": "free_chat", "history": []}
             )
-        self.assertEqual(len(_FakeChat.calls), 3)
+        self.assertEqual(len(_FakeChat.calls), 4)
         self.assertEqual(result["verification_status"], "verified_revised")
         self.assertIn("فرودگاه مسافری ندارد", result["answer"])
+
+    def test_always_on_resolver_handles_unlisted_persian_reference(self):
+        langchain_messages = ModuleType("langchain_core.messages")
+        langchain_messages.AIMessage = _Message
+        langchain_messages.HumanMessage = _Message
+        langchain_messages.SystemMessage = _Message
+        langgraph_graph = ModuleType("langgraph.graph")
+        langgraph_graph.END = "END"
+        langgraph_graph.START = "START"
+        langgraph_graph.StateGraph = _StateGraph
+        langchain_openai = ModuleType("langchain_openai")
+        langchain_openai.ChatOpenAI = _FakeChat
+        modules = {
+            "langchain_core": ModuleType("langchain_core"),
+            "langchain_core.messages": langchain_messages,
+            "langgraph": ModuleType("langgraph"),
+            "langgraph.graph": langgraph_graph,
+            "langchain_openai": langchain_openai,
+        }
+        settings = SimpleNamespace(
+            llm_provider="avalai",
+            llm_model="main-model",
+            llm_max_tokens=700,
+            resolver_model="fast-model",
+            resolver_max_tokens=250,
+            resolver_timeout_seconds=8,
+            top_k=8,
+            avalai_api_key="fake-key",
+            avalai_base_url="https://example.invalid/v1",
+            enable_response_verifier=True,
+        )
+        _FakeChat.calls = []
+        _FakeChat.resolver_content = (
+            '<query_resolution>{"status":"resolved",'
+            '"standalone_query":"کدام‌یک از پنج اقامتگاه غذا سرو می‌کند؟",'
+            '"retrieval_queries":["سرو غذا در پنج اقامتگاه"],'
+            '"referenced_topics":["پنج اقامتگاه"]}</query_resolution>'
+        )
+        with patch.dict(sys.modules, modules):
+            knowledge_scope = KnowledgeScope(
+                {
+                    "version": "test-scope",
+                    "outside_world_response": "در دسترس نیست.",
+                    "not_documented_response": "مشخص نشده است.",
+                    "topics": [{"id": "accommodation", "aliases": ["اقامتگاه"]}],
+                    "outside_world_indicators": [],
+                    "calculation_indicators": [],
+                    "calculation_policy": "محاسبه نکن.",
+                    "closed_world": {},
+                }
+            )
+            graph = build_graph(_Retriever(), settings, knowledge_scope)
+            result = graph.invoke(
+                {
+                    "query": "کدام‌یک غذا سرو می‌کند؟",
+                    "task_id": "free_chat",
+                    "history": [{"role": "user", "content": "پنج اقامتگاه را مقایسه کن"}],
+                }
+            )
+        self.assertEqual(result["query_resolver_status"], "resolved")
+        self.assertEqual(
+            result["retrieval_query"],
+            "کدام‌یک از پنج اقامتگاه غذا سرو می‌کند؟",
+        )
+        self.assertEqual(result["retrieval_queries"], ["سرو غذا در پنج اقامتگاه"])
 
 
 if __name__ == "__main__":

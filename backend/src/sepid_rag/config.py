@@ -60,6 +60,9 @@ class Settings:
     llm_provider: str
     llm_model: str
     llm_max_tokens: int
+    resolver_model: str
+    resolver_max_tokens: int
+    resolver_timeout_seconds: float
     enable_response_verifier: bool
     together_api_key: str
     groq_api_key: str
@@ -84,13 +87,16 @@ class Settings:
             embedding_dimension=int(os.getenv("EMBEDDING_DIMENSION", "768")),
             query_prefix=_prefix("QUERY_PREFIX"),
             document_prefix=_prefix("DOCUMENT_PREFIX"),
-            top_k=int(os.getenv("TOP_K", "8")),
+            top_k=int(os.getenv("TOP_K", "3")),
             retrieval_score_margin=float(os.getenv("RETRIEVAL_SCORE_MARGIN", "0.12")),
             max_chunks_per_source=int(os.getenv("MAX_CHUNKS_PER_SOURCE", "2")),
             mmr_lambda=float(os.getenv("MMR_LAMBDA", "0.75")),
             llm_provider=os.getenv("LLM_PROVIDER", "echo").strip().lower(),
             llm_model=os.getenv("LLM_MODEL", "development-only").strip(),
             llm_max_tokens=int(os.getenv("LLM_MAX_TOKENS", "700")),
+            resolver_model=os.getenv("RESOLVER_MODEL", "").strip(),
+            resolver_max_tokens=int(os.getenv("RESOLVER_MAX_TOKENS", "250")),
+            resolver_timeout_seconds=float(os.getenv("RESOLVER_TIMEOUT_SECONDS", "8")),
             enable_response_verifier=_bool("ENABLE_RESPONSE_VERIFIER", True),
             together_api_key=os.getenv("TOGETHER_API_KEY", "").strip(),
             groq_api_key=os.getenv("GROQ_API_KEY", "").strip(),
@@ -129,6 +135,10 @@ class Settings:
             raise ValueError("EMBEDDING_DIMENSION is implausibly small")
         if self.llm_max_tokens < 1:
             raise ValueError("LLM_MAX_TOKENS must be a positive integer")
+        if self.resolver_max_tokens < 1:
+            raise ValueError("RESOLVER_MAX_TOKENS must be a positive integer")
+        if self.resolver_timeout_seconds <= 0:
+            raise ValueError("RESOLVER_TIMEOUT_SECONDS must be positive")
         if self.embedding_provider not in {
             "hashing",
             "sentence_transformers",

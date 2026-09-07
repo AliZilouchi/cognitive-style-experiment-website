@@ -32,6 +32,24 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(settings.embedding_dimension, 1024)
             self.assertEqual(settings.avalai_base_url, "https://api.avalai.ir/v1")
             self.assertTrue(settings.enable_response_verifier)
+            self.assertEqual(settings.resolver_model, "")
+            self.assertEqual(settings.resolver_max_tokens, 250)
+            self.assertEqual(settings.resolver_timeout_seconds, 8)
+
+    def test_resolver_can_use_a_separate_fast_model(self):
+        with patch.dict(
+            os.environ,
+            {
+                "RESOLVER_MODEL": "fast-resolver-model",
+                "RESOLVER_MAX_TOKENS": "180",
+                "RESOLVER_TIMEOUT_SECONDS": "4.5",
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            self.assertEqual(settings.resolver_model, "fast-resolver-model")
+            self.assertEqual(settings.resolver_max_tokens, 180)
+            self.assertEqual(settings.resolver_timeout_seconds, 4.5)
 
     def test_response_verifier_can_be_disabled_for_diagnostics(self):
         with patch.dict(

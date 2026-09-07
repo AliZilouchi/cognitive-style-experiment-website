@@ -143,6 +143,22 @@ that proxy adds `Authorization: Bearer ...` server-side. Set
 `RAG_API_TOKEN` on Vercel. Add the exact frontend origin to `ALLOWED_ORIGINS`.
 Never use `*` for the final experiment unless there is a documented reason.
 
+### Always-on conversation resolver
+
+Every non-social participant message first passes through the query resolver. It returns
+`independent`, `resolved`, or `unresolved`; an independent or failed resolution keeps the
+original user message unchanged. Configure the resolver independently when a faster model
+is available from the same LLM provider:
+
+```env
+RESOLVER_MODEL=gpt-4.1-mini-2025-04-14
+RESOLVER_MAX_TOKENS=250
+RESOLVER_TIMEOUT_SECONDS=8
+```
+
+If `RESOLVER_MODEL` is empty, the backend uses `LLM_MODEL`. A resolver timeout or malformed
+response never blocks the participant turn; retrieval continues with the original query.
+
 ## Before the pilot
 
 - Select and record the actual embedding provider, model, and revision.
