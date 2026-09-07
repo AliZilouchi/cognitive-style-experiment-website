@@ -7,7 +7,13 @@ import re
 from typing import TypedDict
 
 from .normalization import normalize_persian
-from .prompts import EVIDENCE_JUDGE_PROMPT, SYSTEM_PROMPT, VERIFIER_PROMPT, format_context
+from .prompts import (
+    EVIDENCE_JUDGE_PROMPT,
+    QUERY_RESOLVER_PROMPT,
+    SYSTEM_PROMPT,
+    VERIFIER_PROMPT,
+    format_context,
+)
 from .task_contexts import classify_task_relevance, format_task_context, task_reminder
 from .knowledge_scope import KnowledgeScope, ScopeDecision
 
@@ -37,6 +43,8 @@ class RagState(TypedDict, total=False):
     raw_retrieved: list
     evidence_judge_status: str
     evidence_coverage: str
+    query_resolver_status: str
+    referenced_topics: list[str]
 
 
 _FOLLOW_UP_MARKERS = {
@@ -144,6 +152,24 @@ def build_retrieval_query(
     return "\n".join(["زمینه گفت‌وگوی اخیر:", *recent, "پرسش فعلی:", query])
 
 
+def needs_history_resolution(
+    query: str,
+    history: list[dict[str, str]],
+    known_entities: set[str] | None = None,
+) -> bool:
+    """Use the resolver only when the current turn actually depends on history."""
+    if not history:
+        return False
+    normalized = normalize_persian(query)
+    tokens = set(normalized.split())
+    has_named_entity = any(
+        normalize_persian(entity) in normalized for entity in (known_entities or set())
+    )
+    return bool(tokens & _FOLLOW_UP_MARKERS) or (
+        len(tokens) <= 4 and not has_named_entity
+    )
+
+
 def clean_model_content(content: object) -> str:
     """Remove provider reasoning wrappers without exposing hidden reasoning."""
 
@@ -184,6 +210,28 @@ def extract_evidence_decision(content: object) -> dict | None:
     if result.get("classification") not in {"supported", "unsupported"}:
         return None
     if not isinstance(result.get("selected_chunk_ids", []), list):
+        return None
+    return result
+
+
+def extract_query_resolution(content: object) -> dict | None:
+    """Parse a history-aware retrieval plan without accepting model prose."""
+    cleaned = clean_model_content(content)
+    start = "<query_resolution>"
+    end = "</query_resolution>"
+    if start not in cleaned or end not in cleaned:
+        return None
+    payload = cleaned.split(start, maxsplit=1)[1].split(end, maxsplit=1)[0].strip()
+    try:
+        result = json.loads(payload)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(result, dict) or result.get("status") not in {"resolved", "unresolved"}:
+        return None
+    if not isinstance(result.get("standalone_query"), str):
+        return None
+    queries = result.get("retrieval_queries")
+    if not isinstance(queries, list) or not all(isinstance(item, str) for item in queries):
         return None
     return result
 
@@ -257,7 +305,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             timeout=60,
         )
 
-    def retrieve(state: RagState) -> dict:
+    def resolve_query(state: RagState) -> dict:
         social = social_response(state["query"])
         if social:
             return {
@@ -265,6 +313,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "retrieval_queries": [],
                 "retrieved": [],
                 "social_answer": social,
+                "query_resolver_status": "not_needed",
             }
         clarification = clarification_for_incomplete_query(state["query"])
         if clarification:
@@ -273,18 +322,77 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "retrieval_queries": [],
                 "retrieved": [],
                 "clarification": clarification,
+                "query_resolver_status": "not_needed",
             }
-        retrieval_scope = retrieval_scope_for_task(state["task_id"])
         entities = {
             entity
             for document in retriever.documents
-            if retrieval_scope is None or retrieval_scope in document.task_ids
             for entity in document.entities
         }
-        retrieval_query = build_retrieval_query(
+        fallback_query = build_retrieval_query(
             state["query"], state.get("history", []), entities
         )
-        retrieval_queries = build_retrieval_queries(state["query"], retrieval_query)
+        if not needs_history_resolution(
+            state["query"], state.get("history", []), entities
+        ):
+            return {
+                "retrieval_query": state["query"],
+                "retrieval_queries": build_retrieval_queries(state["query"], state["query"]),
+                "query_resolver_status": "not_needed",
+                "referenced_topics": [],
+            }
+
+        recent_history = state.get("history", [])[-10:]
+        history_text = "\n".join(
+            f"{item.get('role', 'unknown')}: {item.get('content', '').strip()}"
+            for item in recent_history
+            if item.get("content", "").strip()
+        )
+        resolution = None
+        if settings.llm_provider != "echo":
+            try:
+                resolution = extract_query_resolution(llm.invoke([
+                    SystemMessage(content=QUERY_RESOLVER_PROMPT),
+                    HumanMessage(content=(
+                        f"تاریخچه اخیر:\n{history_text}\n\n"
+                        f"پرسش فعلی:\n{state['query']}"
+                    )),
+                ]).content)
+            except Exception:
+                resolution = None
+
+        if resolution is None or resolution["status"] != "resolved":
+            return {
+                "retrieval_query": fallback_query,
+                "retrieval_queries": build_retrieval_queries(state["query"], fallback_query),
+                "query_resolver_status": "fallback",
+                "referenced_topics": [],
+            }
+
+        standalone = resolution["standalone_query"].strip() or fallback_query
+        queries = [
+            item.strip() for item in resolution["retrieval_queries"]
+            if item.strip()
+        ][:6]
+        if not queries:
+            queries = [standalone]
+        topics = [
+            str(item).strip() for item in resolution.get("referenced_topics", [])
+            if str(item).strip()
+        ][:8]
+        return {
+            "retrieval_query": standalone,
+            "retrieval_queries": queries,
+            "query_resolver_status": "resolved",
+            "referenced_topics": topics,
+        }
+
+    def retrieve(state: RagState) -> dict:
+        if state.get("social_answer") or state.get("clarification"):
+            return {"retrieved": [], "raw_retrieved": []}
+        retrieval_scope = retrieval_scope_for_task(state["task_id"])
+        retrieval_query = state.get("retrieval_query", state["query"])
+        retrieval_queries = state.get("retrieval_queries") or [retrieval_query]
         # Retrieval deliberately happens before Knowledge Index classification.
         # A missing alias must never suppress valid evidence (for example events).
         if hasattr(retriever, "search_many"):
@@ -544,11 +652,13 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         }
 
     graph = StateGraph(RagState)
+    graph.add_node("resolve_query", resolve_query)
     graph.add_node("retrieve", retrieve)
     graph.add_node("judge_evidence", judge_evidence)
     graph.add_node("draft_answer", draft_answer)
     graph.add_node("verify_answer", verify_answer)
-    graph.add_edge(START, "retrieve")
+    graph.add_edge(START, "resolve_query")
+    graph.add_edge("resolve_query", "retrieve")
     graph.add_edge("retrieve", "judge_evidence")
     graph.add_edge("judge_evidence", "draft_answer")
     graph.add_edge("draft_answer", "verify_answer")

@@ -8,6 +8,8 @@ from sepid_rag.graph import (
 from sepid_rag.prompts import (
     EVIDENCE_JUDGE_PROMPT,
     EVIDENCE_JUDGE_PROMPT_VERSION,
+    QUERY_RESOLVER_PROMPT,
+    QUERY_RESOLVER_PROMPT_VERSION,
     SYSTEM_PROMPT,
     SYSTEM_PROMPT_VERSION,
     VERIFIER_PROMPT,
@@ -38,12 +40,17 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v12-post-retrieval-judge")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v13-history-aware-retrieval")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
         self.assertIn("پاسخ را با پیشنهاد ادامه", SYSTEM_PROMPT)
         self.assertIn("قرارداد پاسخ", SYSTEM_PROMPT)
+
+    def test_query_resolver_uses_history_as_intent_not_evidence(self):
+        self.assertEqual(QUERY_RESOLVER_PROMPT_VERSION, "sepid-fa-query-resolver-v1")
+        self.assertIn("منبع واقعیت نیستند", QUERY_RESOLVER_PROMPT)
+        self.assertIn("retrieval_queries", QUERY_RESOLVER_PROMPT)
 
     def test_each_research_task_has_problem_objective_and_neutral_boundaries(self):
         self.assertEqual(TASK_CONTEXT_VERSION, "sepid-swts-task-context-v1")

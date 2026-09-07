@@ -11,6 +11,7 @@ from .graph import build_graph
 from .knowledge_scope import KnowledgeScope
 from .prompts import (
     EVIDENCE_JUDGE_PROMPT_VERSION,
+    QUERY_RESOLVER_PROMPT_VERSION,
     SYSTEM_PROMPT_VERSION,
     VERIFIER_PROMPT_VERSION,
 )
@@ -82,6 +83,9 @@ class RagService:
                 "embedding_model": self.retriever.embeddings.model_identity,
                 "query": result["retrieval_query"],
                 "queries": result.get("retrieval_queries", [result["retrieval_query"]]),
+                "query_resolver_status": result.get("query_resolver_status", "unknown"),
+                "query_resolver_version": QUERY_RESOLVER_PROMPT_VERSION,
+                "referenced_topics": result.get("referenced_topics", []),
             },
             "prompt_version": SYSTEM_PROMPT_VERSION,
             "knowledge_scope": {

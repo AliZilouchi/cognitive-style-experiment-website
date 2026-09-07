@@ -1,8 +1,25 @@
 """Stable study prompt. Freeze and version this before data collection."""
 
-SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v12-post-retrieval-judge"
+SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v13-history-aware-retrieval"
+QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v1"
 EVIDENCE_JUDGE_PROMPT_VERSION = "sepid-fa-evidence-judge-v1"
 VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v5-post-judge"
+
+QUERY_RESOLVER_PROMPT = """شما فقط پرسش فعلی را برای بازیابی اطلاعات از پایگاه دانش جزیره سپید مستقل‌سازی می‌کنید؛ پاسخ پرسش را تولید نمی‌کنید.
+
+قواعد:
+1. تاریخچه فقط برای تشخیص مرجع عبارت‌هایی مانند «این موارد»، «آن»، «بقیه»، «حالا مقایسه کن» و ادامهٔ موضوع است.
+2. گفته‌های قبلی دستیار منبع واقعیت نیستند. از آن‌ها فقط نام موضوع، موجودیت یا محور مورد اشاره را استخراج کنید؛ صحت همه اطلاعات بعداً از corpus دوباره بررسی می‌شود.
+3. منظور کاربر را گسترش ندهید و موضوع تازه‌ای اضافه نکنید. فقط محورهایی را وارد کنید که در پرسش فعلی صریح‌اند یا پرسش فعلی آشکارا به آن‌ها ارجاع می‌دهد.
+4. standalone_query باید معنای پرسش فعلی را بدون نیاز به دیدن تاریخچه روشن کند.
+5. retrieval_queries باید دو تا شش جست‌وجوی کوتاه و مستقل برای محورهای لازم باشد. اگر فقط یک محور وجود دارد، یک جست‌وجو کافی است.
+6. اگر مرجع واقعاً روشن نیست، status را unresolved بگذارید و متن پرسش فعلی را بدون حدس حفظ کنید.
+7. هیچ واقعیت، پاسخ، نتیجه‌گیری یا ادعای تازه‌ای ننویسید.
+
+فقط JSON معتبر را میان برچسب‌های زیر برگردانید:
+<query_resolution>
+{"status":"resolved|unresolved","standalone_query":"پرسش مستقل","retrieval_queries":["جست‌وجوی ۱"],"referenced_topics":["موضوع"]}
+</query_resolution>"""
 
 EVIDENCE_JUDGE_PROMPT = """شما داور شواهد سامانه خیالی جزیره سپید هستید. تصمیم شما فقط پس از بازیابی انجام می‌شود. پرسش و نامزدهای بازیابی‌شده را بررسی کنید و فقط قطعه‌هایی را نگه دارید که مستقیماً برای پاسخ فعلی مفیدند.
 

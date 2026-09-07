@@ -7,6 +7,8 @@ from sepid_rag.graph import (
     build_graph,
     build_retrieval_queries,
     build_retrieval_query,
+    extract_query_resolution,
+    needs_history_resolution,
     retrieval_scope_for_task,
     social_response,
 )
@@ -24,7 +26,7 @@ class _CompiledGraph:
 
     def invoke(self, state):
         result = dict(state)
-        for name in ("retrieve", "judge_evidence", "draft_answer", "verify_answer"):
+        for name in ("resolve_query", "retrieve", "judge_evidence", "draft_answer", "verify_answer"):
             result.update(self.nodes[name](result))
         return result
 
@@ -125,6 +127,21 @@ class RetrievalQueryTests(unittest.TestCase):
         )
         self.assertIn("اردوگاه چشمه", result)
         self.assertIn("نسبت به بقیه چطور است؟", result)
+
+    def test_history_resolver_runs_only_for_dependent_turns(self):
+        history = [{"role": "user", "content": "آب‌وهوا چطور است؟"}]
+        self.assertTrue(needs_history_resolution("با توجه به این موارد مقایسه کن", history))
+        self.assertFalse(needs_history_resolution("قیمت هتل صدف چقدر است؟", history))
+
+    def test_query_resolution_envelope_is_strictly_extracted(self):
+        parsed = extract_query_resolution(
+            '<query_resolution>{"status":"resolved",'
+            '"standalone_query":"مقایسه سه بازه از نظر آب‌وهوا و شلوغی",'
+            '"retrieval_queries":["آب‌وهوای سه بازه","شلوغی سه بازه"],'
+            '"referenced_topics":["آب‌وهوا","شلوغی"]}</query_resolution>'
+        )
+        self.assertEqual(len(parsed["retrieval_queries"]), 2)
+        self.assertIsNone(extract_query_resolution("not-json"))
 
     def test_incomplete_short_question_uses_context(self):
         result = build_retrieval_query(

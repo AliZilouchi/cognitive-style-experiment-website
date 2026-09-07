@@ -40,6 +40,9 @@ export type RagChatResponse = {
     embedding_model: string;
     query: string;
     queries?: string[];
+    query_resolver_status?: "resolved" | "fallback" | "not_needed" | "unknown";
+    query_resolver_version?: string;
+    referenced_topics?: string[];
   };
   prompt_version: string;
   knowledge_scope?: {
