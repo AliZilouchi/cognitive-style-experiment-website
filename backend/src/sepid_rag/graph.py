@@ -273,30 +273,6 @@ def extract_query_resolution(content: object) -> dict | None:
     return result
 
 
-def answer_uses_only_evidence_entities(
-    answer: str,
-    evidence: str,
-    resolved_query: str,
-    known_entities: set[str],
-) -> bool:
-    """Reject a rewrite that imports known corpus entities absent from evidence."""
-    evidence_text = normalize_persian(evidence)
-    query_text = normalize_persian(resolved_query)
-    answer_text = normalize_persian(answer)
-    def contains(text: str, entity: str) -> bool:
-        normalized_entity = normalize_persian(entity)
-        return bool(re.search(
-            rf"(?<!\w){re.escape(normalized_entity)}(?!\w)", text
-        ))
-
-    return not any(
-        contains(answer_text, entity)
-        and not contains(evidence_text, entity)
-        and not contains(query_text, entity)
-        for entity in known_entities
-    )
-
-
 def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
     try:
         from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -713,24 +689,10 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             # into an endless loading/error loop. The unverified status is exposed
             # to the API for monitoring.
             verified = None
-        def grounded_entities(answer: str) -> bool:
-            known_entities = {
-                entity for document in retriever.documents for entity in document.entities
-            }
-            return answer_uses_only_evidence_entities(
-                answer,
-                evidence,
-                state.get("retrieval_query", state["query"]),
-                known_entities,
-            )
-
-        if verified is None or not grounded_entities(verified):
+        if verified is None:
             final_answer = state["draft_answer"]
             decision = state.get("request_decision")
-            if decision and (
-                not knowledge_scope.answer_passes_contract(final_answer, decision)
-                or not grounded_entities(final_answer)
-            ):
+            if decision and not knowledge_scope.answer_passes_contract(final_answer, decision):
                 final_answer = knowledge_scope.contract_fallback(decision)
             if state.get("task_reminder") and state["task_reminder"] not in final_answer:
                 final_answer = f"{final_answer}\n\n{state['task_reminder']}"

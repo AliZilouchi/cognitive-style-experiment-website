@@ -4,7 +4,6 @@ import unittest
 from unittest.mock import patch
 
 from sepid_rag.graph import (
-    answer_uses_only_evidence_entities,
     build_graph,
     build_retrieval_queries,
     build_retrieval_query,
@@ -148,29 +147,6 @@ class RetrievalQueryTests(unittest.TestCase):
         )
         self.assertEqual(len(parsed["retrieval_queries"]), 2)
         self.assertIsNone(extract_query_resolution("not-json"))
-
-    def test_verifier_cannot_import_an_unretrieved_known_entity(self):
-        known = {"موزه فانوس", "باغ سنگ و ابر"}
-        self.assertFalse(answer_uses_only_evidence_entities(
-            "موزه فانوس و باغ سنگ و ابر مهم‌اند.",
-            "سلام و رعایت حریم خصوصی مهم است.",
-            "موضوع‌های تعامل محترمانه چیست؟",
-            known,
-        ))
-        self.assertTrue(answer_uses_only_evidence_entities(
-            "موزه فانوس پنج دقیقه فاصله دارد.",
-            "موزه فانوس پنج دقیقه فاصله دارد.",
-            "موزه کجاست؟",
-            known,
-        ))
-
-    def test_entity_guard_uses_boundaries_not_substrings(self):
-        self.assertTrue(answer_uses_only_evidence_entities(
-            "شناخت تعامل محترمانه مهم است.",
-            "تعامل محترمانه توضیح داده شده است.",
-            "چه چیزی مهم است؟",
-            {"شنا"},
-        ))
 
     def test_collective_follow_up_reuses_recent_user_questions(self):
         history = [

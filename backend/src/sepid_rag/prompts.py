@@ -1,6 +1,6 @@
 """Stable study prompt. Freeze and version this before data collection."""
 
-SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.1-balanced-tuning"
+SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.2-no-entity-guard"
 QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v2-user-intent"
 EVIDENCE_JUDGE_PROMPT_VERSION = "sepid-fa-evidence-judge-v2-coverage"
 VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v6-closed-evidence"
