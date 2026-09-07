@@ -40,12 +40,14 @@ class ConversationPolicyTests(unittest.TestCase):
         )
 
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
-        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v14.2-no-entity-guard")
+        self.assertEqual(SYSTEM_PROMPT_VERSION, "sepid-fa-rag-v14.3-proposition-grounding")
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
         self.assertIn("هر ادعای پشتیبانی‌نشده را حذف", SYSTEM_PROMPT)
         self.assertIn("پاسخ را با پیشنهاد ادامه", SYSTEM_PROMPT)
         self.assertIn("قرارداد پاسخ", SYSTEM_PROMPT)
+        self.assertIn("وجود اطلاعات درباره آداب به معنی آموزش آن‌ها توسط تورلیدر نیست", SYSTEM_PROMPT)
+        self.assertIn("بازار مرکزی، بازار محلی و بازار دریایی", SYSTEM_PROMPT)
 
     def test_query_resolver_uses_history_as_intent_not_evidence(self):
         self.assertEqual(QUERY_RESOLVER_PROMPT_VERSION, "sepid-fa-query-resolver-v2-user-intent")
@@ -88,12 +90,15 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("مقایسه زمان‌های سفر", task_reminder("task_2"))
 
     def test_verifier_checks_grounding_math_scope_and_answer_length(self):
-        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v6-closed-evidence")
+        self.assertEqual(VERIFIER_PROMPT_VERSION, "sepid-fa-verifier-v7-proposition-grounding")
         self.assertIn("هر واقعیت، عدد، قیمت، درصد", VERIFIER_PROMPT)
         self.assertIn("خود محاسبه درست باشد", VERIFIER_PROMPT)
         self.assertIn("اطلاعات درخواست‌نشده", VERIFIER_PROMPT)
         self.assertIn("سیاست مرزبندی فعالیت", VERIFIER_PROMPT)
         self.assertIn("سطح درخواست", VERIFIER_PROMPT)
+        self.assertIn("همان فاعل یا گوینده، رابطه یا عمل، مفعول", VERIFIER_PROMPT)
+        self.assertIn("نزدیک بازار", VERIFIER_PROMPT)
+        self.assertIn("تکرار عنوان‌ها کافی نیست", VERIFIER_PROMPT)
 
     def test_verified_answer_envelope_is_strictly_extracted(self):
         self.assertEqual(
@@ -103,8 +108,15 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIsNone(extract_verified_answer("پاسخ بدون برچسب"))
 
     def test_post_retrieval_judge_envelope_is_strictly_extracted(self):
-        self.assertEqual(EVIDENCE_JUDGE_PROMPT_VERSION, "sepid-fa-evidence-judge-v2-coverage")
+        self.assertEqual(
+            EVIDENCE_JUDGE_PROMPT_VERSION,
+            "sepid-fa-evidence-judge-v3-proposition-coverage",
+        )
         self.assertIn("پس از بازیابی", EVIDENCE_JUDGE_PROMPT)
+        self.assertIn("گزاره دقیق", EVIDENCE_JUDGE_PROMPT)
+        self.assertIn("واقعیت شلوغی اثبات نمی‌کند مسافران", EVIDENCE_JUDGE_PROMPT)
+        self.assertIn("بازار مرکزی", EVIDENCE_JUDGE_PROMPT)
+        self.assertIn("صفت برتر", EVIDENCE_JUDGE_PROMPT)
         parsed = extract_evidence_decision(
             '<evidence_decision>{"classification":"supported",'
             '"request_level":"single_fact","selected_chunk_ids":["A"],'
