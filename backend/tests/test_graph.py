@@ -60,9 +60,10 @@ class _FakeChat:
 
     def invoke(self, messages):
         self.calls.append(messages)
-        if len(self.calls) == 1:
+        system_content = messages[0].content
+        if "مستقل‌سازی" in system_content:
             return SimpleNamespace(content=self.resolver_content)
-        if len(self.calls) == 2:
+        if "داور شواهد" in system_content:
             return SimpleNamespace(content=(
                 '<evidence_decision>{"classification":"supported",'
                 '"request_level":"single_fact",'
@@ -72,14 +73,12 @@ class _FakeChat:
                 '"coverage":"پوشش مستقیم",'
                 '"answer_instruction":"فقط مسیر ورود را بگو"}</evidence_decision>'
             ))
-        if len(self.calls) == 3:
-            return SimpleNamespace(content="جزیره فرودگاه مسافری دارد.")
-        return SimpleNamespace(
-            content=(
+        if "ممیز نهایی" in system_content:
+            return SimpleNamespace(content=(
                 "<verified_answer>جزیره فرودگاه مسافری ندارد و راه معمول ورود، "
                 "شناور مسافری از بندر آفتاب است.</verified_answer>"
-            )
-        )
+            ))
+        return SimpleNamespace(content="جزیره فرودگاه مسافری دارد.")
 
 
 class _Retrieved:
@@ -231,7 +230,8 @@ class RetrievalQueryTests(unittest.TestCase):
             result = graph.invoke(
                 {"query": "چطور به جزیره برسیم؟", "task_id": "free_chat", "history": []}
             )
-        self.assertEqual(len(_FakeChat.calls), 4)
+        self.assertEqual(len(_FakeChat.calls), 3)
+        self.assertEqual(result["query_resolver_status"], "independent")
         self.assertEqual(result["verification_status"], "verified_revised")
         self.assertIn("فرودگاه مسافری ندارد", result["answer"])
 
@@ -306,6 +306,73 @@ class RetrievalQueryTests(unittest.TestCase):
                 "سرو غذا در پنج اقامتگاه",
             ],
         )
+
+    def test_resolver_can_identify_a_list_from_the_previous_assistant_turn(self):
+        langchain_messages = ModuleType("langchain_core.messages")
+        langchain_messages.AIMessage = _Message
+        langchain_messages.HumanMessage = _Message
+        langchain_messages.SystemMessage = _Message
+        langgraph_graph = ModuleType("langgraph.graph")
+        langgraph_graph.END = "END"
+        langgraph_graph.START = "START"
+        langgraph_graph.StateGraph = _StateGraph
+        langchain_openai = ModuleType("langchain_openai")
+        langchain_openai.ChatOpenAI = _FakeChat
+        modules = {
+            "langchain_core": ModuleType("langchain_core"),
+            "langchain_core.messages": langchain_messages,
+            "langgraph": ModuleType("langgraph"),
+            "langgraph.graph": langgraph_graph,
+            "langchain_openai": langchain_openai,
+        }
+        settings = SimpleNamespace(
+            llm_provider="avalai",
+            llm_model="main-model",
+            llm_max_tokens=700,
+            resolver_model="fast-model",
+            resolver_max_tokens=250,
+            resolver_timeout_seconds=8,
+            top_k=8,
+            avalai_api_key="fake-key",
+            avalai_base_url="https://example.invalid/v1",
+            enable_response_verifier=True,
+        )
+        _FakeChat.calls = []
+        _FakeChat.resolver_content = (
+            '<query_resolution>{"status":"resolved",'
+            '"standalone_query":"سلام و گفت‌وگوی روشن، حریم خصوصی، رفتار در بازار، احترام به طبیعت و نقش‌های اجتماعی را کوتاه توضیح بده.",'
+            '"retrieval_queries":["سلام و گفت‌وگوی روشن حریم خصوصی رفتار در بازار احترام به طبیعت نقش‌های اجتماعی"],'
+            '"referenced_topics":["سلام و گفت‌وگوی روشن","حریم خصوصی","رفتار در بازار","احترام به طبیعت","نقش‌های اجتماعی"]}</query_resolution>'
+        )
+        with patch.dict(sys.modules, modules):
+            knowledge_scope = KnowledgeScope(
+                {
+                    "version": "test-scope",
+                    "outside_world_response": "در دسترس نیست.",
+                    "not_documented_response": "مشخص نشده است.",
+                    "topics": [{"id": "culture", "aliases": ["تعامل", "احترام"]}],
+                    "outside_world_indicators": [],
+                    "calculation_indicators": [],
+                    "calculation_policy": "محاسبه نکن.",
+                    "closed_world": {},
+                }
+            )
+            graph = build_graph(_Retriever(), settings, knowledge_scope)
+            result = graph.invoke(
+                {
+                    "query": "حالا همان‌ها را کوتاه توضیح بده.",
+                    "task_id": "task_3",
+                    "history": [
+                        {"role": "user", "content": "برای شناخت تعامل محترمانه چه موضوع‌هایی مهم‌اند؟"},
+                        {"role": "assistant", "content": "سلام و گفت‌وگوی روشن؛ حریم خصوصی؛ رفتار در بازار؛ احترام به طبیعت؛ نقش‌های اجتماعی."},
+                    ],
+                }
+            )
+        resolver_input = _FakeChat.calls[0][1].content
+        self.assertIn("assistant (reference-only, not evidence)", resolver_input)
+        self.assertIn("سلام و گفت‌وگوی روشن", resolver_input)
+        self.assertEqual(result["query_resolver_status"], "resolved")
+        self.assertIn("حریم خصوصی", result["retrieval_query"])
 
 
 if __name__ == "__main__":

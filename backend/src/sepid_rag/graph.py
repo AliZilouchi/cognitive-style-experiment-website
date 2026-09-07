@@ -404,14 +404,31 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "clarification": clarification,
                 "query_resolver_status": "not_needed",
             }
+        history = state.get("history", [])
+        if not history:
+            return {
+                "retrieval_query": state["query"],
+                "retrieval_queries": [state["query"]],
+                "query_resolver_status": "independent",
+                "referenced_topics": [],
+            }
         recent_history = [
-            item for item in state.get("history", [])[-12:]
+            item for item in history[-12:]
             if item.get("role") == "user"
         ][-6:]
+        resolver_history = [
+            item for item in history[-10:]
+            if item.get("role") in {"user", "assistant"}
+            and item.get("content", "").strip()
+        ]
         history_text = "\n".join(
-            f"user: {item.get('content', '').strip()}"
-            for item in recent_history
-            if item.get("content", "").strip()
+            (
+                f"user: {item.get('content', '').strip()[:1600]}"
+                if item.get("role") == "user"
+                else "assistant (reference-only, not evidence): "
+                f"{item.get('content', '').strip()[:1600]}"
+            )
+            for item in resolver_history
         )
         resolution = None
         if resolver_llm is not None:
