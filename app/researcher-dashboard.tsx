@@ -192,6 +192,8 @@ const copy = {
     no: "No",
     none: "—",
     preview: "Open no-save study preview",
+    dashboardTab: "Dashboard",
+    modelLabTab: "Model lab",
   },
   fa: {
     eyebrow: "بخش محافظت‌شده پژوهشگر",
@@ -286,6 +288,8 @@ const copy = {
     no: "خیر",
     none: "—",
     preview: "باز کردن پیش‌نمایش بدون ذخیره",
+    dashboardTab: "داشبورد",
+    modelLabTab: "آزمایشگاه مدل",
   },
 };
 
@@ -327,6 +331,7 @@ export default function ResearcherDashboard({
   const [swtsDetails, setSwtsDetails] = useState<SwtsDetails | null>(null);
   const [formDetails, setFormDetails] = useState<StudyFormRecord[] | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
+  const [researcherTab, setResearcherTab] = useState<"dashboard" | "model_lab">("dashboard");
 
   useEffect(() => {
     let active = true;
@@ -673,6 +678,13 @@ export default function ResearcherDashboard({
     </div>
     {authError && <p className="admin-alert" role="alert">{authError}</p>}
 
+    <nav className="researcher-section-tabs" aria-label={language === "fa" ? "بخش‌های پنل پژوهشگر" : "Researcher sections"}>
+      <button type="button" className={researcherTab === "dashboard" ? "active" : ""} onClick={() => setResearcherTab("dashboard")}>{t.dashboardTab}</button>
+      <button type="button" className={researcherTab === "model_lab" ? "active" : ""} onClick={() => setResearcherTab("model_lab")}>{t.modelLabTab}</button>
+    </nav>
+
+    {researcherTab === "model_lab" ? <ResearcherModelLab language={language} /> : <>
+
     <div className="summary-grid">
       <SummaryCard label={t.total} value={dashboard.summary.total_sessions} />
       <SummaryCard label={t.active} value={dashboard.summary.active_sessions} />
@@ -701,8 +713,6 @@ export default function ResearcherDashboard({
       </form>
       <div className="card export-tool"><p className="card-kicker">{t.exports}</p><p className="muted">{language === "fa" ? "خروجی خلاصه، داده‌های آزمون، فرم‌ها یا گفت‌وگوهای SWTS را دریافت کنید." : "Download participant, test, form, or SWTS conversation data."}</p><button className="secondary" onClick={exportParticipantSummary}>{t.exportSummary}</button><button className="secondary" onClick={() => void exportAllTrials()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportTrials}</button><button className="secondary" onClick={() => void exportAllSwts()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportSwts}</button><button className="secondary" onClick={() => void exportAllForms()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportForms}</button></div>
     </div>
-
-    <ResearcherModelLab language={language} />
 
     <div className="card participant-monitor">
       <div className="monitor-heading"><div><p className="card-kicker">{t.participants}</p><strong>{filteredParticipants.length}</strong></div><div className="monitor-filters"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} /><select value={phase} onChange={(event) => setPhase(event.target.value)}><option value="all">{t.allPhases}</option><option value="introduction">Introduction</option><option value="demographics">Demographics</option><option value="test">E-CSA-WA</option><option value="think_aloud">Think aloud</option><option value="pre_task">Pre-task</option><option value="swts">SWTS</option><option value="post_task">Post-task</option><option value="comparative">Final comparison</option><option value="complete">Complete</option></select></div></div>
@@ -738,6 +748,7 @@ export default function ResearcherDashboard({
         </section>)}
       </div>
     </div>}
+    </>}
   </section>;
 }
 
