@@ -298,7 +298,14 @@ class RetrievalQueryTests(unittest.TestCase):
             result["retrieval_query"],
             "کدام‌یک از پنج اقامتگاه غذا سرو می‌کند؟",
         )
-        self.assertEqual(result["retrieval_queries"], ["سرو غذا در پنج اقامتگاه"])
+        self.assertEqual(
+            result["retrieval_queries"],
+            [
+                "کدام‌یک از پنج اقامتگاه غذا سرو می‌کند؟",
+                "کدام‌یک غذا سرو می‌کند؟",
+                "سرو غذا در پنج اقامتگاه",
+            ],
+        )
 
 
 if __name__ == "__main__":

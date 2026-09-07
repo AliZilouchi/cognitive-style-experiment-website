@@ -434,13 +434,10 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
                 "referenced_topics": [],
             }
 
-        history_queries = recent_user_queries_for_collective_reference(
-            state["query"], recent_history
-        )
         if resolution is None or resolution["status"] != "resolved":
             fallback_query = state["query"]
-            fallback_queries = build_retrieval_queries(state["query"], fallback_query)
-            fallback_queries = list(dict.fromkeys([*fallback_queries, *history_queries]))[:6]
+            fallback_parts = build_retrieval_queries(state["query"], fallback_query)
+            fallback_queries = list(dict.fromkeys([fallback_query, *fallback_parts]))[:6]
             return {
                 "retrieval_query": fallback_query,
                 "retrieval_queries": fallback_queries,
@@ -449,13 +446,21 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             }
 
         standalone = resolution["standalone_query"].strip() or state["query"]
-        queries = [
+        resolver_queries = [
             item.strip() for item in resolution["retrieval_queries"]
             if item.strip()
         ][:6]
-        if not queries:
-            queries = [standalone]
-        queries = list(dict.fromkeys([*queries, *history_queries]))[:6]
+        history_queries = recent_user_queries_for_collective_reference(
+            state["query"], recent_history
+        )
+        # The constrained rewrite is primary, while the exact user message is
+        # always retained as retrieval insurance against resolver drift.
+        queries = list(dict.fromkeys([
+            standalone,
+            state["query"],
+            *resolver_queries,
+            *history_queries,
+        ]))[:6]
         topics = [
             str(item).strip() for item in resolution.get("referenced_topics", [])
             if str(item).strip()

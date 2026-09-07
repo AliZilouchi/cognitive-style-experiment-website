@@ -146,9 +146,11 @@ Never use `*` for the final experiment unless there is a documented reason.
 ### Always-on conversation resolver
 
 Every non-social participant message first passes through the query resolver. It returns
-`independent`, `resolved`, or `unresolved`; an independent or failed resolution keeps the
-original user message unchanged. Configure the resolver independently when a faster model
-is available from the same LLM provider:
+`independent`, `resolved`, or `unresolved`. A resolved message is rewritten only by filling
+in missing references from recent user turns. Retrieval searches that constrained rewrite
+first and always retains the exact original message as a second query. An independent,
+unresolved, or failed resolution keeps the original message unchanged. Configure the
+resolver independently when a faster model is available from the same LLM provider:
 
 ```env
 RESOLVER_MODEL=gpt-4.1-mini-2025-04-14
