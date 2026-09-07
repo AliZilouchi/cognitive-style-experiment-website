@@ -169,13 +169,15 @@ class KnowledgeScope:
         if any(marker in normalized for marker in self._comparison) or len(entities) > 1:
             return "comparison"
         explicit_parts = normalized.count("؟") + normalized.count("?")
-        if len(set(topics) - {"overview"}) > 1 or explicit_parts > 1:
+        if explicit_parts > 1:
             return "multi_part"
+        if any(marker in normalized for marker in self._overview):
+            return "category_overview"
         if len(entities) == 1 and len(fields) > 1:
             return "single_entity"
         if len(entities) == 1 or len(fields) == 1:
             return "single_fact"
-        return "category_overview"
+        return "single_fact"
 
     def _format_guidance(
         self,

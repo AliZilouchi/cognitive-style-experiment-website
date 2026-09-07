@@ -10,6 +10,7 @@ from sepid_rag.graph import (
     build_retrieval_query,
     extract_query_resolution,
     needs_history_resolution,
+    recent_user_queries_for_collective_reference,
     retrieval_scope_for_task,
     social_response,
 )
@@ -162,6 +163,30 @@ class RetrievalQueryTests(unittest.TestCase):
             "موزه کجاست؟",
             known,
         ))
+
+    def test_entity_guard_uses_boundaries_not_substrings(self):
+        self.assertTrue(answer_uses_only_evidence_entities(
+            "شناخت تعامل محترمانه مهم است.",
+            "تعامل محترمانه توضیح داده شده است.",
+            "چه چیزی مهم است؟",
+            {"شنا"},
+        ))
+
+    def test_collective_follow_up_reuses_recent_user_questions(self):
+        history = [
+            {"role": "user", "content": "سلام"},
+            {"role": "assistant", "content": "سلام!"},
+            {"role": "user", "content": "آب و هوا چگونه است؟"},
+            {"role": "assistant", "content": "پاسخی که مدرک نیست"},
+            {"role": "user", "content": "چه فصلی شلوغ تر است؟"},
+        ]
+        queries = recent_user_queries_for_collective_reference(
+            "با توجه به این موارد تفاوت بازه ها چیست؟", history
+        )
+        self.assertEqual(queries, [
+            "آب و هوا چگونه است؟",
+            "چه فصلی شلوغ تر است؟",
+        ])
 
     def test_incomplete_short_question_uses_context(self):
         result = build_retrieval_query(

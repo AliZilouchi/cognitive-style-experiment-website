@@ -68,6 +68,9 @@ _FOLLOW_UP_MARKERS = {
 _ATTACHED_REFERENCE = re.compile(
     r"(?:مرتب|مقایسه|توضیح|بررسی|قیمت|هزینه|ویژگی|امکانات|مجوز|قانون|جواب|پاسخ)(?:‌?شان|ش)(?:\s|$|[؟?!،,.])"
 )
+_COLLECTIVE_REFERENCE = re.compile(
+    r"(?<!\w)(?:این موارد|موارد بالا|همانها|همان ها|همه اینها|همه آنها)(?!\w)"
+)
 
 
 def has_reference_marker(normalized: str) -> bool:
@@ -75,6 +78,23 @@ def has_reference_marker(normalized: str) -> bool:
         re.search(rf"(?<!\w){re.escape(marker)}(?!\w)", normalized)
         for marker in _FOLLOW_UP_MARKERS
     ) or bool(_ATTACHED_REFERENCE.search(normalized))
+
+
+def recent_user_queries_for_collective_reference(
+    query: str,
+    history: list[dict[str, str]],
+) -> list[str]:
+    """Reuse prior user questions as retrieval queries for collective follow-ups."""
+    if not _COLLECTIVE_REFERENCE.search(normalize_persian(query)):
+        return []
+    queries = []
+    for item in history:
+        if item.get("role") != "user":
+            continue
+        content = item.get("content", "").strip()
+        if content and social_response(content) is None:
+            queries.append(content)
+    return queries[-5:]
 
 _INCOMPLETE_ENDINGS = {
     "از",
@@ -263,10 +283,16 @@ def answer_uses_only_evidence_entities(
     evidence_text = normalize_persian(evidence)
     query_text = normalize_persian(resolved_query)
     answer_text = normalize_persian(answer)
+    def contains(text: str, entity: str) -> bool:
+        normalized_entity = normalize_persian(entity)
+        return bool(re.search(
+            rf"(?<!\w){re.escape(normalized_entity)}(?!\w)", text
+        ))
+
     return not any(
-        normalize_persian(entity) in answer_text
-        and normalize_persian(entity) not in evidence_text
-        and normalize_persian(entity) not in query_text
+        contains(answer_text, entity)
+        and not contains(evidence_text, entity)
+        and not contains(query_text, entity)
         for entity in known_entities
     )
 
@@ -399,10 +425,15 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             except Exception:
                 resolution = None
 
+        history_queries = recent_user_queries_for_collective_reference(
+            state["query"], recent_history
+        )
         if resolution is None or resolution["status"] != "resolved":
+            fallback_queries = build_retrieval_queries(state["query"], fallback_query)
+            fallback_queries = list(dict.fromkeys([*fallback_queries, *history_queries]))[:6]
             return {
                 "retrieval_query": fallback_query,
-                "retrieval_queries": build_retrieval_queries(state["query"], fallback_query),
+                "retrieval_queries": fallback_queries,
                 "query_resolver_status": "fallback",
                 "referenced_topics": [],
             }
@@ -414,6 +445,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
         ][:6]
         if not queries:
             queries = [standalone]
+        queries = list(dict.fromkeys([*queries, *history_queries]))[:6]
         topics = [
             str(item).strip() for item in resolution.get("referenced_topics", [])
             if str(item).strip()
@@ -564,7 +596,7 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             state.get("retrieval_query", state["query"])
         )
         authorized_evidence = "\n\n".join(
-            item for item in (projected, closed_world, knowledge_constraints) if item
+            item for item in (knowledge_constraints, closed_world, projected) if item
         )
         return {
             "retrieved": selected,

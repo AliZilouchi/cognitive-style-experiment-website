@@ -159,6 +159,24 @@ class KnowledgeScopeTests(unittest.TestCase):
         self.assertIn("احترام به آب", overview)
         self.assertNotIn("موزه فانوس", overview)
 
+    def test_specific_culture_questions_are_single_facts(self):
+        for query in (
+            "مردم جزیره در بدو دیدار چگونه برخورد می کنند؟",
+            "دین مردم جزیره چیست؟",
+            "در سلام و احوالپرسی دست دادن یا تعظیم دارند؟",
+        ):
+            with self.subTest(query=query):
+                self.assertEqual(
+                    self.scope.classify(query, self.entities).request_level,
+                    "single_fact",
+                )
+
+    def test_related_topics_do_not_make_one_question_multi_part(self):
+        decision = self.scope.classify(
+            "در کدام اقامتگاه غذا سرو می شود؟", self.entities
+        )
+        self.assertEqual(decision.request_level, "single_fact")
+
     def test_non_matrix_attribute_is_not_assumed_unavailable(self):
         context = self.scope.closed_world_context("هتل صدف استخر دارد؟")
         self.assertNotIn("استخر", context)
