@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class CorpusTests(unittest.TestCase):
     def test_exactly_the_allowlisted_sources_load(self):
         documents = load_allowlisted_corpus(ROOT / "corpus")
-        self.assertEqual(len(documents), 100)
+        self.assertEqual(len(documents), 107)
         self.assertEqual(
             {source_id for item in documents for source_id in item.source_ids},
             {f"S{i:02d}" for i in range(1, 19)} | {f"E{i:02d}" for i in range(1, 13)},
@@ -106,6 +106,16 @@ class CorpusTests(unittest.TestCase):
                 "SHARED-FACT-POLITICAL-GOVERNANCE",
             }.issubset(chunk_ids)
         )
+
+    def test_food_topics_have_index_comparison_and_entity_facts(self):
+        documents = load_allowlisted_corpus(ROOT / "corpus")
+        chunk_ids = {item.chunk_id for item in documents}
+        self.assertTrue({
+            "SHARED-INDEX-FOOD-DINING", "SHARED-COMPARE-FOOD-DINING",
+            "SHARED-FACT-FOOD-LANGAR-ABI", "SHARED-FACT-FOOD-BAGH-MAZEH",
+            "SHARED-FACT-FOOD-BARAN", "SHARED-FACT-FOOD-HALL",
+            "SHARED-FACT-FOOD-ALLERGEN-LIMITS",
+        }.issubset(chunk_ids))
 
     def test_gold_set_contains_the_three_exact_swts_prompts(self):
         path = ROOT / "corpus" / "evaluation" / "retrieval_gold.jsonl"

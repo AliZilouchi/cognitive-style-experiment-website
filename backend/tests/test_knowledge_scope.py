@@ -143,6 +143,25 @@ class KnowledgeScopeTests(unittest.TestCase):
         self.assertIn("کلبه های نارون", context)
         self.assertIn("صبحانه: با سفارش و هزینه جداگانه", context)
 
+    def test_restaurant_overview_is_structured_and_minimal(self):
+        decision = self.scope.classify("چه غذاخوری هایی در جزیره وجود دارد؟", self.entities)
+        overview = self.scope.category_overview_response(decision)
+        self.assertEqual(decision.request_level, "category_overview")
+        self.assertIn("لنگر آبی", overview)
+        self.assertIn("تالار خوراک بندر", overview)
+        self.assertNotIn("حساسیت", overview)
+
+    def test_restaurant_closed_world_distinguishes_absent_from_unknown(self):
+        decision = self.scope.classify("آشپزخانه باران غذای وگان دارد؟", self.entities)
+        context = self.scope.closed_world_context(
+            "آشپزخانه باران غذای وگان دارد؟", decision
+        )
+        self.assertIn("گزینه وگان ثابت: وضعیت آن ثابت یا مشخص نیست", context)
+        self.assertNotIn("گزینه وگان ثابت: ارائه نمی‌شود", context)
+
+        seafood = self.scope.closed_world_context("باغ مزه غذای دریایی دارد؟")
+        self.assertIn("غذای دریایی: ارائه نمی‌شود", seafood)
+
     def test_known_gap_blocks_tropical_climate_inference(self):
         constraint = self.scope.knowledge_constraints(
             "آیا اقلیم جزیره گرمسیری است؟"

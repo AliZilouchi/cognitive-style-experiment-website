@@ -108,39 +108,6 @@ export function DemographicsForm({ onSubmit }: { onSubmit: (responses: Demograph
   </form>;
 }
 
-export function ThinkAloudPage({ onContinue }: { onContinue: () => void | Promise<void> }) {
-  const [accepted, setAccepted] = useState(false);
-  const [busy, setBusy] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!accepted || busy) return;
-    setBusy(true);
-    try { await onContinue(); } finally { setBusy(false); }
-  }
-  return <form className="study-form think-aloud" onSubmit={submit} dir="rtl">
-    <FormIntro title="راهنمای بیان افکار در حین انجام کار">
-      در هنگام انجام وظیفه، لطفاً آنچه در ذهن شما می‌گذرد با صدای بلند بیان کنید.
-    </FormIntro>
-    <div className="instruction-callout">
-      <strong>برای مثال، می‌توانید درباره موارد زیر صحبت کنید:</strong>
-      <ul>
-        <li>در حال حاضر قصد دارید چه کاری انجام دهید؛</li>
-        <li>چرا پرسش یا درخواست خاصی را برای سامانه می‌نویسید؛</li>
-        <li>درباره پاسخ سامانه چه فکری می‌کنید؛</li>
-        <li>چه اطلاعاتی برای شما مفید، نامرتبط، ناقص یا مشکوک به نظر می‌رسد؛</li>
-        <li>چگونه تصمیم می‌گیرید پرسش بعدی شما چه باشد؛</li>
-        <li>چگونه اطلاعات تازه را با پاسخ‌های قبلی مرتبط می‌کنید و تصمیم می‌گیرید چه چیزی را بیشتر بررسی کنید؛</li>
-        <li>در هر مرحله چه احساسی دارید، مانند اطمینان، تردید، سردرگمی یا رضایت.</li>
-      </ul>
-    </div>
-    <p>لازم نیست صحبت‌های شما رسمی یا منظم باشد و نیازی نیست عملکرد خود را برای پژوهشگر توجیه کنید. فقط تلاش کنید افکاری را که به‌طور طبیعی هنگام انجام کار دارید، بیان کنید.</p>
-    <p>پژوهشگر در طول انجام وظیفه به شما کمک محتوایی نخواهد کرد. اگر برای مدتی سکوت کنید، ممکن است فقط از شما خواسته شود که به بیان افکار خود ادامه دهید.</p>
-    <p>پیش از شروع وظایف اصلی، یک تمرین کوتاه انجام خواهید داد تا با این روش آشنا شوید.</p>
-    <label className="confirmation-row"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} /><span>راهنما را خواندم و آماده‌ام هنگام انجام وظایف، افکارم را با صدای بلند بیان کنم.</span></label>
-    <FormActions busy={busy} disabled={!accepted} label="ادامه به وظیفه اول" />
-  </form>;
-}
-
 export function PreTaskForm({ taskId, position, onSubmit }: { taskId: SwtsTaskId; position: number; onSubmit: (responses: PreTaskResponses) => void | Promise<void> }) {
   const task = SWTS_TASKS[taskId];
   const [confidence, setConfidence] = useState("");

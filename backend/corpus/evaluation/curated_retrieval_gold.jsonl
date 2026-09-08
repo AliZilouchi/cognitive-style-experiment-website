@@ -24,3 +24,7 @@
 {"task_id":"free_chat","query_type":"public_services","query":"شرایط امنیتی جزیره چگونه است؟","required_chunk_ids":["SHARED-FACT-SECURITY-SAFETY"]}
 {"task_id":"free_chat","query_type":"public_services","query":"جزیره فرودگاه دارد و چطور می‌توان به آن رسید؟","required_chunk_ids":["SHARED-FACT-ISLAND-ACCESS"]}
 {"task_id":"free_chat","query_type":"public_services","query":"شرایط سیاسی و نحوه اداره جزیره چگونه است؟","required_chunk_ids":["SHARED-FACT-POLITICAL-GOVERNANCE"]}
+{"task_id":"free_chat","query_type":"food_overview","query":"چه غذاخوری‌هایی در جزیره وجود دارد؟","required_chunk_ids":["SHARED-INDEX-FOOD-DINING"]}
+{"task_id":"free_chat","query_type":"food_comparison","query":"غذاخوری‌های جزیره را از نظر وعده و رژیم غذایی مقایسه کن.","required_chunk_ids":["SHARED-COMPARE-FOOD-DINING"]}
+{"task_id":"free_chat","query_type":"food_entity","query":"باغ‌مزه غذای دریایی یا وگان دارد؟","required_chunk_ids":["SHARED-FACT-FOOD-BAGH-MAZEH"]}
+{"task_id":"free_chat","query_type":"food_safety","query":"برای حساسیت غذایی در رستوران‌های جزیره چه باید بدانیم؟","required_chunk_ids":["SHARED-FACT-FOOD-ALLERGEN-LIMITS"]}

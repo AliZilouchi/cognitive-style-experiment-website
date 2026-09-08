@@ -4,7 +4,7 @@ import { FormEvent, SyntheticEvent, useEffect, useLayoutEffect, useMemo, useStat
 import NextImage from "next/image";
 import ResearcherDashboard from "./researcher-dashboard";
 import { ExperimentSwtsChat, loadParticipantSwtsState, SwtsTaskMeta } from "./swts-chat";
-import { ComparativeForm, DemographicsForm, PostTaskForm, PreTaskForm, ThinkAloudPage } from "./study-forms";
+import { ComparativeForm, DemographicsForm, PostTaskForm, PreTaskForm } from "./study-forms";
 import { SWTS_TASK_IDS, SwtsTaskId } from "./swts-config";
 import { SUPABASE_KEY, SUPABASE_URL } from "./runtime-config";
 import {
@@ -17,7 +17,7 @@ import {
 } from "./ecsa-materials";
 
 type Language = "en" | "fa";
-type Stage = "entry" | "introduction" | "demographics" | "test" | "think_aloud" | "pre_task" | "swts" | "post_task" | "comparative" | "complete";
+type Stage = "entry" | "introduction" | "demographics" | "test" | "pre_task" | "swts" | "post_task" | "comparative" | "complete";
 type ParticipantSession = { session_id: string; participant_id: string; recovery_token: string; phase: Stage };
 type PendingEvent = { id: string; sessionId?: string; sequence: number; type: string; payload: Record<string, unknown>; createdAt: string };
 type TimingState = "intro" | "ready" | "responding" | "result";
@@ -43,7 +43,7 @@ const copy = {
     duration: "Please keep this window open. The full session may take up to two hours.",
     continue: "Continue",
     required: "Please enter your invitation code.",
-    steps: ["Introduction", "Demographics", "Visual task", "Think aloud", "Information tasks", "Final comparison", "Complete"],
+    steps: ["Introduction", "Demographics", "Visual task", "Information tasks", "Final comparison", "Complete"],
     saved: "Progress saved",
     introTitle: "Before you begin",
     introBody: "Your supervisor will guide the session. Short connection interruptions will not erase responses already recorded on this device.",
@@ -120,7 +120,7 @@ const copy = {
     duration: "لطفاً این پنجره را باز نگه دارید. کل جلسه ممکن است تا دو ساعت طول بکشد.",
     continue: "ادامه",
     required: "لطفاً کد دعوت خود را وارد کنید.",
-    steps: ["مقدمه", "اطلاعات فردی", "فعالیت تصویری", "بیان افکار", "فعالیت‌های اطلاعاتی", "مقایسه نهایی", "پایان"],
+    steps: ["مقدمه", "اطلاعات فردی", "فعالیت تصویری", "فعالیت‌های اطلاعاتی", "مقایسه نهایی", "پایان"],
     saved: "پیشرفت ذخیره شد",
     introTitle: "پیش از شروع",
     introBody: "ناظر، شما را در طول جلسه راهنمایی می‌کند. قطعی‌های کوتاه اینترنت پاسخ‌هایی را که در این دستگاه ثبت شده‌اند از بین نمی‌برد.",
@@ -185,7 +185,7 @@ const copy = {
   },
 };
 
-const stageIndex: Record<Stage, number> = { entry: 0, introduction: 0, demographics: 1, test: 2, think_aloud: 3, pre_task: 4, swts: 4, post_task: 4, comparative: 5, complete: 6 };
+const stageIndex: Record<Stage, number> = { entry: 0, introduction: 0, demographics: 1, test: 2, pre_task: 3, swts: 3, post_task: 3, comparative: 4, complete: 5 };
 
 export default function Home() {
   const [adminMode, setAdminMode] = useState(false);
@@ -330,12 +330,12 @@ export default function Home() {
       const response = await rpc("restore_participant_session", { p_session_id: saved.session_id, p_recovery_token: saved.recovery_token });
       const result = await response.json();
       if (response.ok && result?.accepted) {
-        const restoredStage = (result.phase === "chat" ? "swts" : result.phase) as Stage;
+        const restoredStage = (result.phase === "chat" ? "swts" : result.phase === "think_aloud" ? "pre_task" : result.phase) as Stage;
         setStage(restoredStage);
         setSession({ ...saved, phase: restoredStage });
         await flushEvents(saved);
       } else throw new Error();
-    } catch { setStage(saved.phase || "introduction"); }
+    } catch { setStage((saved.phase as string) === "think_aloud" ? "pre_task" : saved.phase || "introduction"); }
   }
 
   function readQueue(): PendingEvent[] {
@@ -407,7 +407,7 @@ export default function Home() {
       if (!state.task_id) throw new Error("swts_task_unavailable");
       applyTaskMeta({ taskId: state.task_id, position: state.current_position, order: state.task_order });
     }
-    await recordEvent("think_aloud_acknowledged", { version: "think-aloud-fa-v1", acknowledged: true }, "pre_task");
+    await recordEvent("ecsa_stage_confirmed", { version: ECSA_VERSION }, "pre_task");
   }
 
   async function handleTaskComplete(meta: SwtsTaskMeta & { closingReflection: string; completed: boolean }) {
@@ -668,7 +668,7 @@ export default function Home() {
       wholistic_analytic_ratio: Math.round(ratio * 1_000_000) / 1_000_000,
       correct_analytic_count: analytic.length,
       correct_wholistic_count: wholistic.length,
-    }, "think_aloud");
+    }, "test");
   }
 
   async function enterStudy(event: FormEvent) {
@@ -787,9 +787,8 @@ export default function Home() {
                 <div className="feedback-summary"><span className="feedback-mark">{ecsaFeedback ? "✓" : "×"}</span><div><h3>{ecsaFeedback ? t.correct : t.incorrect}</h3><p>{t.yourAnswer}: <strong>{ecsaSelectedAnswer === "yes" ? t.yes : t.no}</strong> · {t.correctAnswer}: <strong>{currentEcsaTrial.correctAnswer === "yes" ? t.yes : t.no}</strong></p></div></div>
                 <button className="primary" onClick={() => advanceEcsa()}>{t.nextItem}<Arrow rtl={rtl} /></button>
               </div>}
-              {ecsaScreen === "complete" && <div className="ecsa-feedback ecsa-complete"><span>✓</span><h3>{t.testComplete}</h3><p>{t.testCompleteBody}</p><button className="primary" onClick={() => recordEvent("ecsa_stage_confirmed", { version: ECSA_VERSION }, "think_aloud")}>ادامه به راهنمای بیان افکار<Arrow rtl={rtl} /></button></div>}
+              {ecsaScreen === "complete" && <div className="ecsa-feedback ecsa-complete"><span>✓</span><h3>{t.testComplete}</h3><p>{t.testCompleteBody}</p><button className="primary" onClick={() => void prepareFirstSwtsTask()}>ادامه به فعالیت‌های اطلاعاتی<Arrow rtl={rtl} /></button></div>}
             </>}
-            {stage === "think_aloud" && <ThinkAloudPage onContinue={prepareFirstSwtsTask} />}
             {stage === "pre_task" && <PreTaskForm key={`${currentTaskId}-${currentTaskPosition}`} taskId={currentTaskId} position={currentTaskPosition} onSubmit={(responses) => recordEvent("swts_pre_task_submitted", { version: "swts-pre-task-fa-v1", task_id: currentTaskId, task_position: currentTaskPosition, responses }, "swts")} />}
             {stage === "swts" && session && <ExperimentSwtsChat key={previewMode ? `preview-${currentTaskId}-${currentTaskPosition}` : `experiment-${session.session_id}`} session={session} mode={previewMode ? "preview" : "experiment"} previewTaskId={currentTaskId} previewPosition={currentTaskPosition} previewOrder={taskOrder} simulateRagFailure={previewRagFailure} onTaskLoaded={handleTaskLoaded} onTaskComplete={handleTaskComplete} />}
             {stage === "post_task" && completedTask && <PostTaskForm key={`${completedTask.taskId}-${completedTask.position}`} taskId={completedTask.taskId} position={completedTask.position} onSubmit={(responses) => continueAfterPostTask(responses)} />}
@@ -819,7 +818,7 @@ function PreviewToolbar({ stage, taskId, taskPosition, taskOrder, eventCount, ra
 }) {
   const stages: Array<[Stage, string]> = [
     ["introduction", "مقدمه"], ["demographics", "فرم فردی"], ["test", "E-CSA-WA"],
-    ["think_aloud", "بیان افکار"], ["pre_task", "پیش‌وظیفه"], ["swts", "گفت‌وگو"],
+    ["pre_task", "پیش‌وظیفه"], ["swts", "گفت‌وگو"],
     ["post_task", "پس‌وظیفه"], ["comparative", "مقایسه"], ["complete", "پایان"],
   ];
   const orders: SwtsTaskId[][] = [

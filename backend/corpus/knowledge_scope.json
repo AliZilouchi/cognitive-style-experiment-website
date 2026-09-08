@@ -1,5 +1,5 @@
 {
-  "version": "sepid-knowledge-scope-v4.1-balanced-planner",
+  "version": "sepid-knowledge-scope-v4.2-food-entity-clarity",
   "outside_world_response": "متأسفانه اطلاعاتی در خصوص این مورد از جزیره سپید در دسترس نیست.",
   "not_documented_response": "جزئیات این مورد در اطلاعات موجود درباره جزیره سپید مشخص نشده است.",
   "topics": [
@@ -8,7 +8,7 @@
     {"id":"travel_periods","aliases":["زمان سفر","بازه سفر","فصل","ماه","آب و هوا","هوا","دما","باران","باد","شلوغ","خلوت","هزینه سفر"]},
     {"id":"attractions","aliases":["جاذبه","دیدنی","تفریح","فعالیت","طبیعت گردی","قایق سواری","شنا","موزه","بازار","آبشار","تالاب","باغ","ساحل","جنگل"]},
     {"id":"transport_access","aliases":["رسیدن","ورود","خروج","فرودگاه","پرواز","شناور","کشتی","اسکله","مینی بوس","حمل و نقل","رفت و آمد","مسیر","فاصله"]},
-    {"id":"food_services","aliases":["غذا","رستوران","ناهار","شام","خوراک","خرید","فروشگاه","داروخانه","خدمات عمومی","اینترنت","برق","آب شیرین"]},
+    {"id":"food_services","aliases":["غذا","غذاخوری","غذاخوری ها","رستوران","رستوران ها","ناهار","شام","خوراک","خرید","فروشگاه","داروخانه","خدمات عمومی","اینترنت","برق","آب شیرین"]},
     {"id":"language_culture","aliases":["زبان","فارسی","سپیدی","ارتباط با بومیان","بومیان","فرهنگ","رسم","رسوم","آیین","باور","اعتقاد","اسطوره","قهرمان","نشانه","نماد","قصه","تعامل محترمانه","سلام","احوالپرسی","دست دادن","تعظیم","مصافحه","حریم","عکاسی","هدیه"]},
     {"id":"society_governance","aliases":["جامعه","قشر","طبقه","شغل","معیشت","مهاجرت","سکونت دائم","اقامت دائم","شورا","سیاسی","سیاست","انتخابات","اداره جزیره","حکومت"]},
     {"id":"health_safety","aliases":["درمان","درمانی","پزشکی","پزشک","بیمار","بیمارستان","اورژانس","حادثه","امنیت","ایمنی","جرم","خطر","امداد"]},
@@ -33,12 +33,13 @@
       "ارزان تر", "گران تر", "مزایا و معایب"
     ],
     "overview_indicators": [
-      "گزینه ها", "موضوع ها", "چه مواردی", "کدام موارد", "چه چیزهایی", "معرفی", "نمای کلی", "انواع"
+      "گزینه ها", "موضوع ها", "چه مواردی", "کدام موارد", "چه چیزهایی", "چه غذاخوری هایی", "چه رستوران هایی", "معرفی", "نمای کلی", "انواع"
     ],
     "fields": [
       {"id":"price","aliases":["قیمت","هزینه","یورو"]},
       {"id":"capacity","aliases":["ظرفیت","چند نفر"]},
       {"id":"food","aliases":["صبحانه","ناهار","شام","غذا"]},
+      {"id":"dietary","aliases":["گیاهی","وگان","گوشت","ماهی","دریایی","حساسیت","آلرژی","بیرون بر"]},
       {"id":"facilities","aliases":["حمام","آشپزخانه","نظافت","استخر","سالن ورزشی"]},
       {"id":"booking","aliases":["رزرو","بیعانه","حداقل اقامت","مدرک شناسایی","مجوز"]},
       {"id":"weather","aliases":["هوا","آب و هوا","دما","باران","باد"]},
@@ -83,6 +84,15 @@
           {"name":"آکواریوم آب‌های سپید"}, {"name":"شهربازی بادبان"},
           {"name":"خانه سکوت ابر"}, {"name":"چشمه گرم سپیدسنگ"},
           {"name":"تالار خوراک بندر"}
+        ]
+      },
+      "food_services": {
+        "intro": "چهار غذاخوری اصلی در جزیره سپید معرفی شده است:",
+        "items": [
+          {"name":"لنگر آبی","identifying_property":"غذای دریایی کنار اسکله"},
+          {"name":"باغ‌مزه","identifying_property":"غذاهای گیاهی در باغ‌های میانی"},
+          {"name":"آشپزخانه باران","identifying_property":"خوراک گرم محلی در جنوب"},
+          {"name":"تالار خوراک بندر","identifying_property":"چند غرفه در سالن مشترک میدان بندر"}
         ]
       },
       "language_culture": {
@@ -175,6 +185,21 @@
         "خانه مسافر فانوس": {"breakfast":false,"lunch":false,"dinner":false,"private_bathroom":true,"full_kitchen":false,"small_kitchen":true,"food_reheating":true,"daily_cleaning":false},
         "کلبه های نارون": {"breakfast":"paid_optional","lunch":false,"dinner":false,"private_bathroom":true,"full_kitchen":false,"small_kitchen":false,"food_reheating":true,"daily_cleaning":false},
         "اردوگاه چشمه": {"breakfast":false,"lunch":false,"dinner":false,"private_bathroom":false,"full_kitchen":false,"small_kitchen":false,"food_reheating":true,"daily_cleaning":false}
+      }
+    },
+    "restaurant_services": {
+      "rule": "این جدول فقط برای ویژگی‌های فهرست‌شده کامل است. مقدار false یعنی آن خدمت صریحاً وجود ندارد؛ درباره هر ویژگی بیرون از جدول باید گفت که اطلاعات ثبت نشده است.",
+      "service_labels": {
+        "breakfast": "صبحانه", "lunch": "ناهار", "dinner": "شام",
+        "vegetarian_main": "غذای اصلی گیاهی", "fixed_vegan": "گزینه وگان ثابت",
+        "seafood": "غذای دریایی", "takeaway": "بیرون‌بر",
+        "indoor_seating": "فضای سرپوشیده", "allergen_free_kitchen": "آشپزخانه مستقل بدون مواد حساسیت‌زا"
+      },
+      "entities": {
+        "لنگر آبی": {"breakfast":false,"lunch":true,"dinner":true,"vegetarian_main":false,"fixed_vegan":false,"seafood":true,"takeaway":true,"indoor_seating":true,"allergen_free_kitchen":false},
+        "باغ مزه": {"breakfast":false,"lunch":true,"dinner":true,"vegetarian_main":true,"fixed_vegan":true,"seafood":false,"takeaway":true,"indoor_seating":false,"allergen_free_kitchen":false},
+        "آشپزخانه باران": {"breakfast":false,"lunch":true,"dinner":true,"vegetarian_main":true,"fixed_vegan":null,"seafood":false,"takeaway":true,"indoor_seating":true,"allergen_free_kitchen":false},
+        "تالار خوراک بندر": {"breakfast":false,"lunch":true,"dinner":true,"vegetarian_main":true,"fixed_vegan":null,"seafood":true,"takeaway":null,"indoor_seating":true,"allergen_free_kitchen":false}
       }
     }
   }

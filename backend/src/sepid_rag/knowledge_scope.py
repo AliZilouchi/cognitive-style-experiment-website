@@ -335,11 +335,17 @@ class KnowledgeScope:
         decision: ScopeDecision | None = None,
     ) -> str:
         normalized = normalize_persian(query_with_context)
-        group = self.data.get("closed_world", {}).get("accommodation_services", {})
-        entities = group.get("entities", {})
+        groups = self.data.get("closed_world", {})
         accommodation_terms = ("اقامت", "هتل", "مهمان خانه", "خانه مسافر", "کلبه", "اردوگاه")
-        mentioned = [name for name in entities if normalize_persian(name) in normalized]
-        if not mentioned and not any(term in normalized for term in accommodation_terms):
+        restaurant_terms = ("غذا", "غذاخوری", "رستوران", "ناهار", "شام", "گیاهی", "وگان", "دریایی", "بیرون بر", "حساسیت")
+        selected_groups = []
+        for group_name, terms in (("accommodation_services", accommodation_terms), ("restaurant_services", restaurant_terms)):
+            group = groups.get(group_name, {})
+            entities = group.get("entities", {})
+            mentioned = [name for name in entities if normalize_persian(name) in normalized]
+            if mentioned or any(term in normalized for term in terms):
+                selected_groups.append((group, entities, mentioned))
+        if not selected_groups:
             return ""
         requested_fields = set(decision.requested_fields) if decision else set()
         field_keys = {
@@ -348,23 +354,27 @@ class KnowledgeScope:
                 "private_bathroom", "full_kitchen", "small_kitchen",
                 "food_reheating", "daily_cleaning",
             },
+            "dietary": {"vegetarian_main", "fixed_vegan", "seafood", "takeaway", "allergen_free_kitchen"},
         }
         allowed_keys = set().union(
             *(field_keys.get(field, set()) for field in requested_fields)
         ) if requested_fields else None
-        selected = entities if not mentioned else {name: entities[name] for name in mentioned}
-        labels = group.get("service_labels", {})
         rows = []
-        for name, values in selected.items():
-            rendered = []
-            for key, value in values.items():
-                if allowed_keys is not None and key not in allowed_keys:
-                    continue
-                label = labels.get(key, key)
-                status = "ارائه می‌شود" if value is True else "ارائه نمی‌شود" if value is False else "با سفارش و هزینه جداگانه"
-                rendered.append(f"{label}: {status}")
-            if rendered:
-                rows.append(f"- {name}: " + "؛ ".join(rendered))
+        rules = []
+        for group, entities, mentioned in selected_groups:
+            selected = entities if not mentioned else {name: entities[name] for name in mentioned}
+            labels = group.get("service_labels", {})
+            rules.append(str(group.get("rule", "")))
+            for name, values in selected.items():
+                rendered = []
+                for key, value in values.items():
+                    if allowed_keys is not None and key not in allowed_keys:
+                        continue
+                    label = labels.get(key, key)
+                    status = "ارائه می‌شود" if value is True else "ارائه نمی‌شود" if value is False else "با سفارش و هزینه جداگانه" if value == "paid_optional" else "وضعیت آن ثابت یا مشخص نیست"
+                    rendered.append(f"{label}: {status}")
+                if rendered:
+                    rows.append(f"- {name}: " + "؛ ".join(rendered))
         if not rows:
             return ""
-        return "\n".join([str(group.get("rule", "")), *rows])
+        return "\n".join([*dict.fromkeys(rules), *rows])
