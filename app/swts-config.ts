@@ -1,6 +1,6 @@
 export type SwtsTaskId = "task_1" | "task_2" | "task_3";
 
-export const SWTS_VERSION = "sepid-island-fa-swts-v3-neutral-reflection";
+export const SWTS_VERSION = "sepid-island-fa-swts-v4-receptive-task1";
 export const SWTS_TIME_LIMIT_SECONDS = 60 * 60;
 
 const NEUTRAL_REFLECTION_PROMPT =
@@ -34,7 +34,7 @@ export const SWTS_TASKS: Record<SwtsTaskId, SwtsTask> = {
     problem:
       "گروه هنوز نمی‌داند در جزیره سپید چه گزینه‌هایی برای اقامت وجود دارد و این گزینه‌ها از نظر موقعیت، ظرفیت، هزینه، امکانات و مقررات چه تفاوت‌هایی دارند.",
     objective:
-      "با دستیار گفت‌وگو کنید تا اطلاعات لازم درباره گزینه‌های اقامت را پیدا کنید. هدف این است که در پایان بدانید هر گزینه چه ویژگی‌هایی دارد و کدام گزینه‌ها با نیازهای گروه شما سازگارند.",
+      "با دستیار گفت‌وگو کنید تا اطلاعات لازم درباره گزینه‌های اقامت را پیدا کنید. هدف این است که در پایان بدانید هر گزینه چه ویژگی‌هایی دارد.",
     closingPrompt: NEUTRAL_REFLECTION_PROMPT,
     closingPlaceholder: NEUTRAL_REFLECTION_PLACEHOLDER,
     maxReflectionWords: NEUTRAL_REFLECTION_WORD_LIMIT,

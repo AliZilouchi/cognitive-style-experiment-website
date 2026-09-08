@@ -66,7 +66,7 @@ class ConversationPolicyTests(unittest.TestCase):
         self.assertIn("کدام‌یک از پنج اقامتگاه غذا سرو می‌کند", QUERY_RESOLVER_PROMPT)
 
     def test_each_research_task_has_problem_objective_and_neutral_boundaries(self):
-        self.assertEqual(TASK_CONTEXT_VERSION, "sepid-swts-task-context-v1")
+        self.assertEqual(TASK_CONTEXT_VERSION, "sepid-swts-task-context-v2-receptive-task1")
         for task_id in ("task_1", "task_2", "task_3"):
             context = format_task_context(task_id)
             self.assertIn("مسئله:", context)
@@ -74,6 +74,8 @@ class ConversationPolicyTests(unittest.TestCase):
             self.assertIn("دامنه اصلی:", context)
             self.assertIn("اطلاعات را پنهان نکنید", context)
             self.assertIn("سؤال بعدی مشخص پیشنهاد نکنید", context)
+        self.assertNotIn("سازگار", format_task_context("task_1"))
+        self.assertNotIn("تناسب با گروه", format_task_context("task_1"))
 
     def test_free_chat_has_full_corpus_without_research_task_boundary(self):
         context = format_task_context("free_chat")
