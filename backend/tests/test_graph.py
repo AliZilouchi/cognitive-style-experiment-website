@@ -363,6 +363,7 @@ class RetrievalQueryTests(unittest.TestCase):
                     "query": "حالا همان‌ها را کوتاه توضیح بده.",
                     "task_id": "task_3",
                     "history": [
+                        {"role": "assistant", "content": "این پاسخ قدیمی نباید وارد resolver شود."},
                         {"role": "user", "content": "برای شناخت تعامل محترمانه چه موضوع‌هایی مهم‌اند؟"},
                         {"role": "assistant", "content": "سلام و گفت‌وگوی روشن؛ حریم خصوصی؛ رفتار در بازار؛ احترام به طبیعت؛ نقش‌های اجتماعی."},
                     ],
@@ -371,6 +372,7 @@ class RetrievalQueryTests(unittest.TestCase):
         resolver_input = _FakeChat.calls[0][1].content
         self.assertIn("assistant (reference-only, not evidence)", resolver_input)
         self.assertIn("سلام و گفت‌وگوی روشن", resolver_input)
+        self.assertNotIn("این پاسخ قدیمی", resolver_input)
         self.assertEqual(result["query_resolver_status"], "resolved")
         self.assertIn("حریم خصوصی", result["retrieval_query"])
 

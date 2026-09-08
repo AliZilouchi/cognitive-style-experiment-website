@@ -416,11 +416,24 @@ def build_graph(retriever, settings, knowledge_scope: KnowledgeScope):
             item for item in history[-12:]
             if item.get("role") == "user"
         ][-6:]
+        last_assistant_index = next(
+            (
+                index for index in range(len(history) - 1, -1, -1)
+                if history[index].get("role") == "assistant"
+                and history[index].get("content", "").strip()
+            ),
+            None,
+        )
+        history_start = max(0, len(history) - 12)
         resolver_history = [
-            item for item in history[-10:]
-            if item.get("role") in {"user", "assistant"}
-            and item.get("content", "").strip()
-        ]
+            item
+            for index, item in enumerate(history[history_start:], start=history_start)
+            if item.get("content", "").strip()
+            and (
+                item.get("role") == "user"
+                or (item.get("role") == "assistant" and index == last_assistant_index)
+            )
+        ][-7:]
         history_text = "\n".join(
             (
                 f"user: {item.get('content', '').strip()[:1600]}"

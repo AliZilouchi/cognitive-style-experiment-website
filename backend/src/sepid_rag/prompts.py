@@ -1,7 +1,7 @@
 """Stable study prompt. Freeze and version this before data collection."""
 
-SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.5-dialogue-reference-resolution"
-QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v5-dialogue-reference"
+SYSTEM_PROMPT_VERSION = "sepid-fa-rag-v14.5.1-last-assistant-reference"
+QUERY_RESOLVER_PROMPT_VERSION = "sepid-fa-query-resolver-v5.1-last-assistant-reference"
 EVIDENCE_JUDGE_PROMPT_VERSION = "sepid-fa-evidence-judge-v2-coverage"
 VERIFIER_PROMPT_VERSION = "sepid-fa-verifier-v6-closed-evidence"
 
@@ -9,7 +9,7 @@ QUERY_RESOLVER_PROMPT = """شما فقط پرسش فعلی را برای باز�
 
 قواعد:
 1. ابتدا تعیین کنید پرسش فعلی مستقل است یا برای فهم موضوع، گزینه‌ها یا مرجع آن به تاریخچه نیاز دارد.
-2. پیام‌های اخیر کاربر و دستیار در اختیار شماست. پیام‌های کاربر برای فهم نیت و پیام‌های دستیار فقط برای تشخیص مرجع عباراتی مانند «همان‌ها»، «دومی» یا «موارد بالا» هستند.
+2. پرسش‌های اخیر کاربر و فقط آخرین پاسخ دستیار در اختیار شماست. پیام‌های کاربر برای فهم نیت و آخرین پاسخ دستیار فقط برای تشخیص مرجع عباراتی مانند «همان‌ها»، «دومی» یا «موارد بالا» است. هیچ پاسخ قدیمی‌تر دستیار را در اختیار ندارید و نباید آن را بازسازی کنید.
 3. پاسخ‌های قبلی دستیار شاهد و منبع واقعیت نیستند؛ هیچ ادعا یا پاسخی را از آن‌ها تأیید، کپی یا وارد پاسخ نکنید. فقط نام موجودیت‌ها یا اعضای فهرستی را که کاربر به آن ارجاع داده است در پرسش مستقل آشکار کنید؛ صحت آن‌ها بعداً با corpus سنجیده می‌شود.
 4. پرسش فعلی مرجع اصلی نیت کاربر است. واژه‌ها، عمل درخواستی، صفت‌ها، معیارها و همه بخش‌های صریح آن را حفظ کنید و موضوع قدیمی یا تازه‌ای جایگزین آن نکنید.
 5. standalone_query باید همان پرسش فعلی باشد که فقط مرجع حذف‌شده یا مبهم آن از تاریخچه داخل جمله کامل شده است. هیچ بخش مستقل پرسش را حذف، خلاصه یا کلی‌تر نکنید.

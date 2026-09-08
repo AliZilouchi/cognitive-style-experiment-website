@@ -42,7 +42,7 @@ class ConversationPolicyTests(unittest.TestCase):
     def test_prompt_freezes_grounding_and_progressive_disclosure_rules(self):
         self.assertEqual(
             SYSTEM_PROMPT_VERSION,
-            "sepid-fa-rag-v14.5-dialogue-reference-resolution",
+            "sepid-fa-rag-v14.5.1-last-assistant-reference",
         )
         self.assertIn("حداکثر سه تا پنج محور", SYSTEM_PROMPT)
         self.assertIn("یک حکم کلی را به مصداق خاص منتقل نکنید", SYSTEM_PROMPT)
@@ -53,9 +53,10 @@ class ConversationPolicyTests(unittest.TestCase):
     def test_query_resolver_uses_history_as_intent_not_evidence(self):
         self.assertEqual(
             QUERY_RESOLVER_PROMPT_VERSION,
-            "sepid-fa-query-resolver-v5-dialogue-reference",
+            "sepid-fa-query-resolver-v5.1-last-assistant-reference",
         )
-        self.assertIn("پیام‌های اخیر کاربر و دستیار", QUERY_RESOLVER_PROMPT)
+        self.assertIn("پرسش‌های اخیر کاربر و فقط آخرین پاسخ دستیار", QUERY_RESOLVER_PROMPT)
+        self.assertIn("هیچ پاسخ قدیمی‌تر دستیار", QUERY_RESOLVER_PROMPT)
         self.assertIn("شاهد و منبع واقعیت نیستند", QUERY_RESOLVER_PROMPT)
         self.assertIn("فهرست پاسخ قبلی دستیار", QUERY_RESOLVER_PROMPT)
         self.assertIn("retrieval_queries", QUERY_RESOLVER_PROMPT)
