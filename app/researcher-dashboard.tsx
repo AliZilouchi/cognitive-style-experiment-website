@@ -157,11 +157,13 @@ const copy = {
     lastSeen: "Last seen",
     inspect: "Inspect",
     exports: "Exports",
+    exportComplete: "Complete active dataset JSON",
     exportSummary: "Participant summary CSV",
     exportTrials: "All trial responses CSV",
     exportSwts: "All SWTS conversations CSV",
     exportForms: "All study forms CSV",
     exporting: "Preparing export…",
+    exportFailed: "The complete dataset could not be exported.",
     detail: "Participant record",
     close: "Close",
     consent: "Consent",
@@ -253,11 +255,13 @@ const copy = {
     lastSeen: "آخرین فعالیت",
     inspect: "بررسی",
     exports: "خروجی‌ها",
+    exportComplete: "JSON کامل داده‌های خارج از سطل زباله",
     exportSummary: "CSV خلاصه شرکت‌کنندگان",
     exportTrials: "CSV تمام پاسخ‌های آزمون",
     exportSwts: "CSV تمام گفت‌وگوهای SWTS",
     exportForms: "CSV تمام فرم‌های مطالعه",
     exporting: "در حال آماده‌سازی خروجی…",
+    exportFailed: "خروجی کامل داده‌ها آماده نشد.",
     detail: "پرونده شرکت‌کننده",
     close: "بستن",
     consent: "رضایت",
@@ -654,6 +658,22 @@ export default function ResearcherDashboard({
     } finally { setExportBusy(false); }
   }
 
+  async function exportCompleteDataset() {
+    setExportBusy(true);
+    setAuthError("");
+    try {
+      const response = await researcherRpc("researcher_export_complete_dataset", {});
+      if (!response.ok) throw new Error("complete_export_failed");
+      const dataset = await response.json() as Record<string, unknown>;
+      const date = new Date().toISOString().slice(0, 10);
+      downloadJson(`cognitive-style-complete-active-dataset-${date}.json`, dataset);
+    } catch {
+      setAuthError(t.exportFailed);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   if (restoring) {
     return <section className="researcher-page content" dir={rtl ? "rtl" : "ltr"}><div className="admin-loading"><span className="pulse-dot" /><p>{t.refreshing}</p></div></section>;
   }
@@ -711,7 +731,7 @@ export default function ResearcherDashboard({
           })}
         </div>
       </form>
-      <div className="card export-tool"><p className="card-kicker">{t.exports}</p><p className="muted">{language === "fa" ? "خروجی خلاصه، داده‌های آزمون، فرم‌ها یا گفت‌وگوهای SWTS را دریافت کنید." : "Download participant, test, form, or SWTS conversation data."}</p><button className="secondary" onClick={exportParticipantSummary}>{t.exportSummary}</button><button className="secondary" onClick={() => void exportAllTrials()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportTrials}</button><button className="secondary" onClick={() => void exportAllSwts()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportSwts}</button><button className="secondary" onClick={() => void exportAllForms()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportForms}</button></div>
+      <div className="card export-tool"><p className="card-kicker">{t.exports}</p><p className="muted">{language === "fa" ? "خروجی کامل فقط جلسات خارج از سطل زباله را دریافت می‌کند. خروجی‌های جداگانه نیز در دسترس‌اند." : "The complete export includes only sessions outside the trash. Individual exports remain available."}</p><button className="primary" onClick={() => void exportCompleteDataset()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportComplete}</button><button className="secondary" onClick={exportParticipantSummary} disabled={exportBusy}>{t.exportSummary}</button><button className="secondary" onClick={() => void exportAllTrials()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportTrials}</button><button className="secondary" onClick={() => void exportAllSwts()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportSwts}</button><button className="secondary" onClick={() => void exportAllForms()} disabled={exportBusy}>{exportBusy ? t.exporting : t.exportForms}</button></div>
     </div>
 
     <div className="card participant-monitor">
@@ -784,6 +804,16 @@ function downloadCsv(filename: string, rows: Array<Record<string, unknown>>) {
   };
   const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => escape(row[header])).join(","))].join("\n");
   const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadJson(filename: string, value: Record<string, unknown>) {
+  const json = JSON.stringify(value, null, 2);
+  const url = URL.createObjectURL(new Blob([json], { type: "application/json;charset=utf-8" }));
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
